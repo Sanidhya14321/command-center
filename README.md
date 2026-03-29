@@ -20,8 +20,36 @@ Production-quality Next.js App Router resource hub for Forward Deployment Engine
 - FDE Playbook markdown rendering with rich callout and code styles
 - AI Engineering Mastery with practical decision matrix and checklists
 - Live Signal Intelligence panel with resilient server fallback
-- Interactive Agent Lab using Groq model llama3-70b-8192
+- Interactive Agent Lab using Groq model fallback chain (primary, fallback, safe)
 - Searchable/sortable/paginated 300-row Data Science project repository
+
+## Autonomous Agent System
+
+The repository now includes a self-evolving agent runtime under [agent/agent.ts](agent/agent.ts) with:
+
+- Groq planner with model fallback chain (primary, fallback, safe model)
+- Strict JSON planning output with diff-only patch edits
+- Validation gates (patch shape, duplication checks, lint + build safety)
+- Automatic rollback on validation failure
+- Memory tracking in [agent/memory.json](agent/memory.json)
+- Project awareness graph in [agent/projectGraph.ts](agent/projectGraph.ts)
+- Observability logs in [agent/logger.ts](agent/logger.ts)
+- Git automation with commit threshold and daily caps
+
+### Scheduler
+
+Workflow: [.github/workflows/auto-update.yml](.github/workflows/auto-update.yml)
+
+- Runs hourly and supports manual dispatch
+- Uses random delay mode for human-like timing
+- Commits only when quality score >= 6
+
+### Agent Setup
+
+1. Configure environment values from [.env.example](.env.example)
+2. Add repository secrets: `GROQ_API_KEY`, `NEWS_API_KEY`
+3. Add repository variables (optional): `PRIMARY_MODEL`, `FALLBACK_MODEL`, `SAFE_MODEL`
+4. Run locally: `npm run agent:run`
 
 ## Routes
 
@@ -30,6 +58,8 @@ Production-quality Next.js App Router resource hub for Forward Deployment Engine
 - /repository : Dedicated project table page
 - /api/signals : Signal feed API (with filtering, scoring, Groq summarization)
 - /api/agent : Interview generation API
+- /api/interview : Mock interviewer with scoring and follow-ups
+- /api/stack-recommendation : Situation to solution decision engine
 
 ## Environment
 

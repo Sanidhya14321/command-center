@@ -1,0 +1,48 @@
+name: Autonomous Repo Update
+
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: autonomous-update
+  cancel-in-progress: false
+
+jobs:
+  evolve:
+    runs-on: ubuntu-latest
+    timeout-minutes: 220
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Configure Git identity
+        run: |
+          git config user.name "autonomous-ai-agent"
+          git config user.email "autonomous-ai-agent@users.noreply.github.com"
+
+      - name: Run autonomous agent
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          NEWS_API_KEY: ${{ secrets.NEWS_API_KEY }}
+          PRIMARY_MODEL: ${{ vars.PRIMARY_MODEL }}
+          FALLBACK_MODEL: ${{ vars.FALLBACK_MODEL }}
+          SAFE_MODEL: ${{ vars.SAFE_MODEL }}
+          AGENT_ENABLE_DELAY: "true"
+        run: npm run agent:run

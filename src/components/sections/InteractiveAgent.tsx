@@ -88,7 +88,7 @@ export function InteractiveAgent() {
               {status === "thinking" ? <LoaderCircle className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
               Generate questions
             </button>
-            <span className="text-xs text-[var(--m3-on-surface-variant)]">Model: llama3-70b-8192 via Groq</span>
+            <span className="text-xs text-[var(--m3-on-surface-variant)]">Model: Groq fallback chain (primary to fallback to safe)</span>
           </div>
 
           <div className="mt-4 min-h-48 rounded-2xl border border-[var(--m3-outline)]/45 bg-[var(--m3-surface-container)] p-4">
