@@ -79,7 +79,8 @@ function isRecoverableAgentError(error: unknown): boolean {
     message.includes("planner did not return unified diff patch") ||
     message.includes("invalid planner json shape") ||
     message.includes("planner produced malformed patch") ||
-    message.includes("corrupt patch at line")
+    message.includes("corrupt patch at line") ||
+    message.includes("planner failed to generate a valid patch after retries")
   );
 }
 
@@ -93,27 +94,60 @@ async function run(): Promise<void> {
   }
 
   const mode = pickMode();
-  const plan: PlanOutput = await planNextChange({
-    mode,
-    graphSummary: graph.summary,
-    memorySummary: summarizeMemory(memory),
-    requiredFocus: "AI engineering docs quality, system design UX, failure mode explorer depth, API resilience, observability",
-  });
+  const maxPatchAttempts = 3;
+  let plan: PlanOutput | null = null;
 
-  await logEvent("INFO", "Planner decision", {
-    mode: plan.mode,
-    action: plan.action,
-    files: plan.targetFiles,
-    qualityScore: plan.qualityScore,
-  });
+  for (let attempt = 1; attempt <= maxPatchAttempts; attempt += 1) {
+    const candidatePlan: PlanOutput = await planNextChange({
+      mode,
+      graphSummary: graph.summary,
+      memorySummary: summarizeMemory(memory),
+      requiredFocus: "AI engineering docs quality, system design UX, failure mode explorer depth, API resilience, observability",
+    });
 
-  if (plan.qualityScore < 6) {
-    await logEvent("WARN", "Skipped: planner quality score below threshold", { qualityScore: plan.qualityScore });
-    return;
+    await logEvent("INFO", "Planner decision", {
+      attempt,
+      mode: candidatePlan.mode,
+      action: candidatePlan.action,
+      files: candidatePlan.targetFiles,
+      qualityScore: candidatePlan.qualityScore,
+    });
+
+    if (candidatePlan.qualityScore < 6) {
+      await logEvent("WARN", "Skipped: planner quality score below threshold", {
+        attempt,
+        qualityScore: candidatePlan.qualityScore,
+      });
+      return;
+    }
+
+    try {
+      await validatePatchNotEmpty(candidatePlan.diffPatch);
+      await applyDiffPatch(candidatePlan.diffPatch);
+      plan = candidatePlan;
+      break;
+    } catch (error) {
+      const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+      const malformedPatch =
+        message.includes("malformed patch") ||
+        message.includes("corrupt patch") ||
+        message.includes("unified diff patch") ||
+        message.includes("patch missing unified diff headers");
+
+      await logEvent("WARN", "Planner patch attempt failed", {
+        attempt,
+        error: error instanceof Error ? error.message : String(error),
+      });
+
+      if (!malformedPatch || attempt === maxPatchAttempts) {
+        throw error;
+      }
+    }
   }
 
-  await validatePatchNotEmpty(plan.diffPatch);
-  await applyDiffPatch(plan.diffPatch);
+  if (!plan) {
+    throw new Error("Planner failed to generate a valid patch after retries");
+  }
 
   const changedFiles = await getChangedFiles();
   const patchFiles = extractTargetFilesFromPatch(plan.diffPatch);
