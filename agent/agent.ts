@@ -26,7 +26,6 @@ type MemoryState = {
 };
 
 const MEMORY_PATH = path.join(process.cwd(), "agent", "memory.json");
-const RECOVERY_HEARTBEAT_PATH = path.join(process.cwd(), ".github", "agent-recovery.log");
 
 async function loadMemory(): Promise<MemoryState> {
   const raw = await fs.readFile(MEMORY_PATH, "utf-8");
@@ -88,62 +87,60 @@ function isRecoverableAgentError(error: unknown): boolean {
     message.includes("planner patch references missing file path") ||
     message.includes("operation validation failed") ||
     message.includes("operation failed:") ||
+    message.includes("component guard") ||
+    message.includes("did not target any component") ||
     message.includes("no such file or directory") ||
     message.includes("planner failed to generate a valid patch after retries")
   );
 }
 
-async function applyResilientFallbackUpdate(params: {
-  graphSummary: string;
-  memorySummary: string;
-  reason: string;
-}): Promise<string> {
-  const docsDir = path.join(process.cwd(), "docs");
-  const docsPath = path.join(docsDir, "autonomous-insights.md");
-  await fs.mkdir(docsDir, { recursive: true });
-
-  const timestamp = new Date().toISOString();
-  const memoryLines = params.memorySummary
-    .split("\n")
-    .filter(Boolean)
-    .slice(-3)
-    .map((line) => `- ${line}`)
-    .join("\n");
-
-  const section = [
-    `## Autonomous Insight ${timestamp}`,
-    "",
-    `- Graph summary: ${params.graphSummary}`,
-    `- Recovery trigger: ${params.reason.replace(/\s+/g, " ").slice(0, 180)}`,
-    `- Reliability action: planner patch retries exhausted; applied deterministic fallback content update at ${timestamp}.`,
-    "",
-    "### Recent Memory Snapshot",
-    memoryLines || "- No memory snapshot available.",
-    "",
-  ].join("\n");
-
-  let existing = "# Autonomous Insights Log\n\n";
-  try {
-    existing = await fs.readFile(docsPath, "utf-8");
-  } catch {
-    // File does not exist yet; will be created.
-  }
-
-  await fs.writeFile(docsPath, `${existing.trimEnd()}\n\n${section}`, "utf-8");
-  return path.relative(process.cwd(), docsPath).replace(/\\/g, "/");
+function isComponentFile(filePath: string): boolean {
+  return filePath.replace(/\\/g, "/").startsWith("src/components/");
 }
 
-async function commitRecoveryHeartbeat(reason: string): Promise<void> {
-  if (process.env.GITHUB_ACTIONS !== "true") {
-    return;
+function onlyComponentCandidates(candidateFiles: string[]): string[] {
+  const fromGraph = candidateFiles.filter((filePath) => isComponentFile(filePath));
+  return fromGraph.slice(0, 20);
+}
+
+async function applyForcedComponentRecovery(params: {
+  mode: AgentMode;
+  graphSummary: string;
+  memorySummary: string;
+  candidateFiles: string[];
+  reason: string;
+}): Promise<{ plan: PlanOutput; changedFiles: string[] }> {
+  const componentCandidates = onlyComponentCandidates(params.candidateFiles);
+  if (!componentCandidates.length) {
+    throw new Error("Component guard: no component candidates found for Groq recovery");
   }
 
-  await fs.mkdir(path.dirname(RECOVERY_HEARTBEAT_PATH), { recursive: true });
-  const timestamp = new Date().toISOString();
-  const sanitizedReason = reason.replace(/\s+/g, " ").slice(0, 240);
-  await fs.appendFile(RECOVERY_HEARTBEAT_PATH, `${timestamp} | ${sanitizedReason}\n`, "utf-8");
+  const recoveryPlan = await planNextChange({
+    mode: params.mode,
+    graphSummary: params.graphSummary,
+    memorySummary: params.memorySummary,
+    requiredFocus: `Emergency recovery: update one existing React component with meaningful AI-engineering content. Trigger: ${params.reason}`,
+    candidateFiles: componentCandidates,
+    requireComponentTarget: true,
+    operationsOnly: true,
+  });
 
-  await commitAndPush("chore(agent): recovery heartbeat after planner failure");
+  if (!recoveryPlan.operations.length) {
+    throw new Error("Component guard: Groq recovery plan returned no operations");
+  }
+
+  const changedFiles = await applyOperations(recoveryPlan.operations);
+  if (!changedFiles.some((filePath) => isComponentFile(filePath))) {
+    throw new Error("Component guard: Groq recovery did not modify a component file");
+  }
+
+  return {
+    plan: {
+      ...recoveryPlan,
+      commitMessage: recoveryPlan.commitMessage || "enhance(component): autonomous Groq recovery update",
+    },
+    changedFiles,
+  };
 }
 
 async function run(): Promise<void> {
@@ -157,6 +154,7 @@ async function run(): Promise<void> {
 
   const mode = pickMode();
   const maxPatchAttempts = 3;
+  const forceComponentUpdate = process.env.AGENT_FORCE_COMPONENT_UPDATE === "true";
   let plan: PlanOutput | null = null;
   let operationAppliedFiles: string[] = [];
   let lastPatchError: string | null = null;
@@ -167,8 +165,11 @@ async function run(): Promise<void> {
       mode,
       graphSummary: graph.summary,
       memorySummary,
-      requiredFocus: "AI engineering docs quality, system design UX, failure mode explorer depth, API resilience, observability",
+      requiredFocus:
+        "AI engineering docs quality, system design UX, failure mode explorer depth, API resilience, observability, and concrete component-level upgrades",
       candidateFiles: graph.candidateFiles,
+      requireComponentTarget: true,
+      operationsOnly: forceComponentUpdate,
     });
 
     await logEvent("INFO", "Planner decision", {
@@ -261,33 +262,54 @@ async function run(): Promise<void> {
   }
 
   if (!plan) {
-    const fallbackFile = await applyResilientFallbackUpdate({
+    await logEvent("WARN", "Primary planning failed; invoking forced Groq component recovery", {
+      reason: lastPatchError,
+    });
+
+    const recovery = await applyForcedComponentRecovery({
+      mode: "editor",
       graphSummary: graph.summary,
       memorySummary,
-      reason: lastPatchError ?? "Planner failed to generate a valid patch after retries",
+      candidateFiles: graph.candidateFiles,
+      reason: lastPatchError ?? "Planner failed to generate a valid change after retries",
     });
 
-    await logEvent("WARN", "Applied resilient fallback update after patch retries", {
-      reason: lastPatchError,
-      fallbackFile,
-    });
-
-    plan = {
-      action: "fallback-docs-update",
-      targetFiles: [fallbackFile],
-      operations: [],
-      diffPatch: "",
-      summary: "Applied resilient autonomous docs update after patch retry failures.",
-      rationale: "Keeps autonomous iteration productive even when model-generated diffs are non-applicable.",
-      commitMessage: "docs(agent): resilient autonomous insight update",
-      qualityScore: 7,
-      mode,
-    };
+    plan = recovery.plan;
+    operationAppliedFiles = recovery.changedFiles;
   }
 
-  const changedFiles = await getChangedFiles();
-  const patchFiles = plan.diffPatch ? extractTargetFilesFromPatch(plan.diffPatch) : [];
-  const candidateFiles = Array.from(new Set([...changedFiles, ...patchFiles, ...operationAppliedFiles])).filter(Boolean);
+  let changedFiles = await getChangedFiles();
+  let patchFiles = plan.diffPatch ? extractTargetFilesFromPatch(plan.diffPatch) : [];
+  let candidateFiles = Array.from(new Set([...changedFiles, ...patchFiles, ...operationAppliedFiles])).filter(Boolean);
+
+  if (!candidateFiles.some((filePath) => isComponentFile(filePath))) {
+    await logEvent("WARN", "Component guard failed after primary apply; rolling back and forcing Groq recovery", {
+      files: candidateFiles,
+    });
+
+    if (candidateFiles.length) {
+      await rollbackFiles(candidateFiles);
+    }
+
+    const recovery = await applyForcedComponentRecovery({
+      mode: "editor",
+      graphSummary: graph.summary,
+      memorySummary,
+      candidateFiles: graph.candidateFiles,
+      reason: "Primary plan did not produce any component file changes",
+    });
+
+    plan = recovery.plan;
+    operationAppliedFiles = recovery.changedFiles;
+
+    changedFiles = await getChangedFiles();
+    patchFiles = [];
+    candidateFiles = Array.from(new Set([...changedFiles, ...operationAppliedFiles])).filter(Boolean);
+  }
+
+  if (!candidateFiles.some((filePath) => isComponentFile(filePath))) {
+    throw new Error("Component guard: no component files were modified by the final plan");
+  }
 
   try {
     await validateNoDuplicateBlocks(candidateFiles);
@@ -336,14 +358,6 @@ run().catch(async (error) => {
     return;
   }
 
-  try {
-    await commitRecoveryHeartbeat(message);
-  } catch (heartbeatError) {
-    await logEvent("WARN", "Failed to commit recovery heartbeat", {
-      error: heartbeatError instanceof Error ? heartbeatError.message : String(heartbeatError),
-    });
-  }
-
-  console.warn("[agent] Recoverable failure detected; exiting without failing workflow. Set AGENT_STRICT_MODE=true to fail fast.");
+  console.warn("[agent] Recoverable failure detected; no fallback commit was created. Set AGENT_STRICT_MODE=true to fail fast.");
   process.exitCode = 0;
 });

@@ -51,7 +51,8 @@ jobs:
         run: |
           if [ -z "$GROQ_API_KEY" ]; then
             echo "run_agent=false" >> "$GITHUB_OUTPUT"
-            echo "GROQ_API_KEY is not configured. Skipping autonomous run." >&2
+            echo "GROQ_API_KEY is not configured. Failing run because autonomous content must come from Groq." >&2
+            exit 1
           else
             echo "run_agent=true" >> "$GITHUB_OUTPUT"
           fi
@@ -72,51 +73,38 @@ jobs:
           echo "start_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           npm run agent:run
 
-      - name: Fallback maintenance commit (agent produced no commit)
+      - name: Retry autonomous agent with forced component update
         if: steps.secret_check.outputs.run_agent == 'true'
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          NEWS_API_KEY: ${{ secrets.NEWS_API_KEY }}
+          MODEL: ${{ vars.MODEL }}
+          PRIMARY_MODEL: ${{ vars.PRIMARY_MODEL }}
+          FALLBACK_MODEL: ${{ vars.FALLBACK_MODEL }}
+          SAFE_MODEL: ${{ vars.SAFE_MODEL }}
+          AGENT_ENABLE_DELAY: "false"
+          AGENT_STRICT_MODE: "true"
+          AGENT_FORCE_COMPONENT_UPDATE: "true"
         run: |
           START_SHA="${{ steps.agent_run.outputs.start_sha }}"
           CURRENT_SHA="$(git rev-parse HEAD)"
 
           if [ "$CURRENT_SHA" != "$START_SHA" ]; then
-            echo "Agent produced a commit already. No fallback commit needed."
+            echo "Primary run already produced a commit. Skipping forced retry."
             exit 0
           fi
 
-          mkdir -p .github
-          touch .github/agent-heartbeat.log
-          echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) planner/no-op fallback heartbeat" >> .github/agent-heartbeat.log
+          npm run agent:run
 
-          git add .github/agent-heartbeat.log
-          if git diff --cached --quiet; then
-            echo "No fallback changes to commit."
-            exit 0
-          fi
-
-          git commit -m "chore(agent): fallback heartbeat after no-op run"
-          git push origin "${GITHUB_REF_NAME}"
-
-      - name: Fallback maintenance commit (no Groq key)
-        if: steps.secret_check.outputs.run_agent == 'false'
+      - name: Verify autonomous commit created
+        if: steps.secret_check.outputs.run_agent == 'true'
         run: |
-          mkdir -p .github
-          touch .github/agent-heartbeat.log
+          START_SHA="${{ steps.agent_run.outputs.start_sha }}"
+          CURRENT_SHA="$(git rev-parse HEAD)"
 
-          LAST_DATE="$(tail -n 1 .github/agent-heartbeat.log | cut -d' ' -f1 || true)"
-          TODAY="$(date -u +%Y-%m-%d)"
-
-          if [ "$LAST_DATE" = "$TODAY" ]; then
-            echo "Heartbeat already recorded today. No fallback commit needed."
-            exit 0
+          if [ "$CURRENT_SHA" = "$START_SHA" ]; then
+            echo "Autonomous run produced no commit even after forced component retry." >&2
+            exit 1
           fi
 
-          echo "${TODAY} missing GROQ_API_KEY -> maintenance heartbeat" >> .github/agent-heartbeat.log
-
-          git add .github/agent-heartbeat.log
-          if git diff --cached --quiet; then
-            echo "No changes to commit."
-            exit 0
-          fi
-
-          git commit -m "chore(agent): daily heartbeat without Groq key"
-          git push origin "${GITHUB_REF_NAME}"
+          echo "Autonomous run produced commit ${CURRENT_SHA}."

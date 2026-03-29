@@ -12,6 +12,7 @@ export type PlanOutput = {
   commitMessage: string;
   qualityScore: number;
   mode: AgentMode;
+  sourceModel?: string;
 };
 
 const PRIMARY_MODEL = process.env.MODEL || process.env.PRIMARY_MODEL || "auto";
@@ -45,7 +46,25 @@ function extractPatchFromText(text: string): string {
   return normalized;
 }
 
-function parsePlan(content: string): PlanOutput {
+function isComponentPath(filePath: string): boolean {
+  return filePath.replace(/\\/g, "/").startsWith("src/components/");
+}
+
+function planTargetsComponent(targetFiles: string[], operations: EditOperation[]): boolean {
+  if (targetFiles.some((filePath) => isComponentPath(filePath))) {
+    return true;
+  }
+
+  return operations.some((op) => isComponentPath(op.filePath));
+}
+
+function parsePlan(
+  content: string,
+  options?: {
+    requireComponentTarget?: boolean;
+    operationsOnly?: boolean;
+  },
+): PlanOutput {
   const parsed = JSON.parse(content) as Partial<PlanOutput>;
   if (!parsed.action || !Array.isArray(parsed.targetFiles) || !parsed.summary || !parsed.commitMessage || !parsed.mode) {
     throw new Error("Invalid planner JSON shape");
@@ -61,8 +80,20 @@ function parsePlan(content: string): PlanOutput {
     }
   }
 
+  if (options?.operationsOnly && !operations.length) {
+    throw new Error("Planner operations-only mode requires non-empty operations");
+  }
+
+  if (options?.operationsOnly && cleanPatch) {
+    throw new Error("Planner operations-only mode forbids diff patches");
+  }
+
   if (!operations.length && !cleanPatch) {
     throw new Error("Planner returned neither operations nor usable diff patch");
+  }
+
+  if (options?.requireComponentTarget && !planTargetsComponent(parsed.targetFiles, operations)) {
+    throw new Error("Planner plan did not target any component file");
   }
 
   return {
@@ -75,6 +106,7 @@ function parsePlan(content: string): PlanOutput {
     commitMessage: parsed.commitMessage,
     qualityScore: Math.max(1, Math.min(10, parsed.qualityScore ?? 6)),
     mode: parsed.mode,
+    sourceModel: parsed.sourceModel,
   };
 }
 
@@ -89,6 +121,8 @@ export async function planNextChange(params: {
   memorySummary: string;
   requiredFocus: string;
   candidateFiles: string[];
+  requireComponentTarget?: boolean;
+  operationsOnly?: boolean;
 }): Promise<PlanOutput> {
   if (!process.env.GROQ_API_KEY) {
     throw new Error("GROQ_API_KEY is required for autonomous planner");
@@ -105,6 +139,9 @@ export async function planNextChange(params: {
     Critical output rule:
     - Prefer operations array with at most 2 operations.
     - Use diffPatch only when operations are not feasible.
+    - At least one target file must be under src/components/.
+    - Do not produce no-op plans.
+    ${params.operationsOnly ? "- Operations-only mode is enabled: return non-empty operations and omit diffPatch." : ""}
     - If using diffPatch, it must be a valid git unified diff patch with file headers (--- a/<path> and +++ b/<path>) and no markdown fences.`;
       const completion = await groq.chat.completions.create({
         model,
@@ -122,7 +159,15 @@ export async function planNextChange(params: {
         throw new Error("Planner returned empty output");
       }
 
-      return parsePlan(content);
+      const parsed = parsePlan(content, {
+        requireComponentTarget: params.requireComponentTarget,
+        operationsOnly: params.operationsOnly,
+      });
+
+      return {
+        ...parsed,
+        sourceModel: model,
+      };
     } catch (error) {
       lastError = error;
       if (!shouldRetry(error)) break;
