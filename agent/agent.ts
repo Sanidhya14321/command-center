@@ -119,32 +119,48 @@ async function applyForcedComponentRecovery(params: {
     throw new Error("Component guard: no component candidates found for Groq recovery");
   }
 
-  const recoveryPlan = await planNextChange({
-    mode: params.mode,
-    graphSummary: params.graphSummary,
-    memorySummary: params.memorySummary,
-    requiredFocus: `Emergency recovery: update one existing React component with meaningful AI-engineering content. Trigger: ${params.reason}`,
-    candidateFiles: componentCandidates,
-    requireComponentTarget: true,
-    operationsOnly: true,
-  });
+  const maxRecoveryAttempts = 3;
+  let lastError: string | null = null;
 
-  if (!recoveryPlan.operations.length) {
-    throw new Error("Component guard: Groq recovery plan returned no operations");
+  for (let attempt = 1; attempt <= maxRecoveryAttempts; attempt += 1) {
+    try {
+      const recoveryPlan = await planNextChange({
+        mode: params.mode,
+        graphSummary: params.graphSummary,
+        memorySummary: params.memorySummary,
+        requiredFocus: `Emergency recovery attempt ${attempt}/${maxRecoveryAttempts}: update one existing React component with meaningful AI-engineering content. Trigger: ${params.reason}`,
+        candidateFiles: componentCandidates,
+        requireComponentTarget: true,
+        operationsOnly: true,
+      });
+
+      if (!recoveryPlan.operations.length) {
+        throw new Error("Component guard: Groq recovery plan returned no operations");
+      }
+
+      const changedFiles = await applyOperations(recoveryPlan.operations);
+      if (!changedFiles.some((filePath) => isComponentFile(filePath))) {
+        throw new Error("Component guard: Groq recovery did not modify a component file");
+      }
+
+      return {
+        plan: {
+          ...recoveryPlan,
+          commitMessage: recoveryPlan.commitMessage || "enhance(component): autonomous Groq recovery update",
+        },
+        changedFiles,
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      lastError = message;
+      await logEvent("WARN", "Forced component recovery attempt failed", {
+        attempt,
+        error: message,
+      });
+    }
   }
 
-  const changedFiles = await applyOperations(recoveryPlan.operations);
-  if (!changedFiles.some((filePath) => isComponentFile(filePath))) {
-    throw new Error("Component guard: Groq recovery did not modify a component file");
-  }
-
-  return {
-    plan: {
-      ...recoveryPlan,
-      commitMessage: recoveryPlan.commitMessage || "enhance(component): autonomous Groq recovery update",
-    },
-    changedFiles,
-  };
+  throw new Error(`Component guard: forced Groq recovery failed after retries: ${lastError ?? "unknown error"}`);
 }
 
 async function run(): Promise<void> {

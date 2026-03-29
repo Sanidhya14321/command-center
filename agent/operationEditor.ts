@@ -84,6 +84,71 @@ function resolveWorkspacePath(relativePath: string): string {
   return absolutePath;
 }
 
+function normalizeLineForMatch(line: string): string {
+  return line.trim().replace(/\s+/g, " ");
+}
+
+function tryFuzzyReplaceBlock(current: string, find: string, replace: string): string | null {
+  const currentLines = current.split("\n");
+  const findLines = find.split("\n");
+
+  const normalizedFind = findLines.map(normalizeLineForMatch);
+  const nonEmptyFind = normalizedFind.filter(Boolean);
+  if (nonEmptyFind.length === 0) {
+    return null;
+  }
+
+  const candidateStarts: number[] = [];
+  const firstNeedle = nonEmptyFind[0];
+
+  for (let i = 0; i < currentLines.length; i += 1) {
+    if (normalizeLineForMatch(currentLines[i]) === firstNeedle) {
+      candidateStarts.push(i);
+    }
+  }
+
+  const matchedStarts: number[] = [];
+
+  for (const start of candidateStarts) {
+    let j = start;
+    let ok = true;
+
+    for (let k = 0; k < normalizedFind.length; k += 1) {
+      const needle = normalizedFind[k];
+      if (!needle) {
+        continue;
+      }
+
+      while (j < currentLines.length && !normalizeLineForMatch(currentLines[j])) {
+        j += 1;
+      }
+
+      if (j >= currentLines.length || normalizeLineForMatch(currentLines[j]) !== needle) {
+        ok = false;
+        break;
+      }
+
+      j += 1;
+    }
+
+    if (ok) {
+      matchedStarts.push(start);
+    }
+  }
+
+  if (matchedStarts.length !== 1) {
+    return null;
+  }
+
+  const start = matchedStarts[0];
+  const exactLineCount = findLines.length;
+  const end = Math.min(currentLines.length, start + exactLineCount);
+  const replacementLines = replace.split("\n");
+
+  const nextLines = [...currentLines.slice(0, start), ...replacementLines, ...currentLines.slice(end)];
+  return nextLines.join("\n");
+}
+
 export async function applyOperations(operations: EditOperation[]): Promise<string[]> {
   if (!Array.isArray(operations) || operations.length === 0) {
     throw new Error("Operation validation failed: operations array cannot be empty");
@@ -98,10 +163,18 @@ export async function applyOperations(operations: EditOperation[]): Promise<stri
 
     if (op.type === "replace_block") {
       const current = await fs.readFile(absolutePath, "utf-8");
-      if (!current.includes(op.find)) {
-        throw new Error(`Operation failed: find block not found in ${op.filePath}`);
+      let next = "";
+
+      if (current.includes(op.find)) {
+        next = current.replace(op.find, op.replace);
+      } else {
+        const fuzzy = tryFuzzyReplaceBlock(current, op.find, op.replace);
+        if (!fuzzy) {
+          throw new Error(`Operation failed: find block not found in ${op.filePath}`);
+        }
+        next = fuzzy;
       }
-      const next = current.replace(op.find, op.replace);
+
       if (next === current) {
         throw new Error(`Operation failed: replace produced no changes in ${op.filePath}`);
       }
