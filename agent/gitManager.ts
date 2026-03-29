@@ -18,7 +18,21 @@ export async function rollbackFiles(files: string[]): Promise<void> {
 }
 
 export async function commitAndPush(commitMessage: string): Promise<void> {
+  const { stdout: stagedBefore } = await execFileAsync("git", ["status", "--porcelain"]);
+  if (!stagedBefore.trim()) {
+    return;
+  }
+
   await execFileAsync("git", ["add", "-A"]);
+  const { stdout: stagedAfter } = await execFileAsync("git", ["status", "--porcelain"]);
+  if (!stagedAfter.trim()) {
+    return;
+  }
+
   await execFileAsync("git", ["commit", "-m", commitMessage]);
-  await execFileAsync("git", ["push"]);
+  const { stdout: branch } = await execFileAsync("git", ["rev-parse", "--abbrev-ref", "HEAD"]);
+  const cleanBranch = branch.trim();
+  if (cleanBranch && cleanBranch !== "HEAD") {
+    await execFileAsync("git", ["push", "origin", cleanBranch]);
+  }
 }

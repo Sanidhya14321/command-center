@@ -24,6 +24,11 @@ const SystemDesignSimulator = dynamic(
   { loading: () => <SkeletonLoader className="h-72 w-full rounded-md" /> },
 );
 
+const AIEngineeringMastery = dynamic(
+  () => import("@/components/sections/AIEngineeringMastery").then((mod) => mod.AIEngineeringMastery),
+  { loading: () => <SkeletonLoader className="h-72 w-full rounded-md" /> },
+);
+
 const InterviewModeAgent = dynamic(
   () => import("@/components/sections/InterviewModeAgent").then((mod) => mod.InterviewModeAgent),
   { loading: () => <SkeletonLoader className="h-72 w-full rounded-md" /> },
@@ -53,6 +58,7 @@ export default function Home() {
         <div className="space-y-8">
           <CommandCenterHero />
           <AICurriculumHub />
+          <AIEngineeringMastery />
           <SystemDesignSimulator sectionId="system-simulator" />
           <SituationSolutionEngine sectionId="situation-solution" />
           <FailureModeExplorer sectionId="failure-mode-explorer" />

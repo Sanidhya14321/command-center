@@ -48,7 +48,7 @@ Workflow: [.github/workflows/auto-update.yml](.github/workflows/auto-update.yml)
 
 1. Configure environment values from [.env.example](.env.example)
 2. Add repository secrets: `GROQ_API_KEY`, `NEWS_API_KEY`
-3. Add repository variables (optional): `PRIMARY_MODEL`, `FALLBACK_MODEL`, `SAFE_MODEL`
+3. Add repository variables (optional): `MODEL`, `PRIMARY_MODEL`, `FALLBACK_MODEL`, `SAFE_MODEL`
 4. Run locally: `npm run agent:run`
 
 ## Routes
