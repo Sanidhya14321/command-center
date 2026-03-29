@@ -3,6 +3,7 @@ import path from "node:path";
 import { applyDiffPatch, extractTargetFilesFromPatch } from "./fileEditor";
 import { commitAndPush, getChangedFiles, rollbackFiles } from "./gitManager";
 import { logEvent } from "./logger";
+import { applyOperations } from "./operationEditor";
 import { planNextChange, repairMalformedPatch, type PlanOutput } from "./planner";
 import { buildProjectGraph } from "./projectGraph";
 import { type AgentMode } from "./prompts";
@@ -85,6 +86,8 @@ function isRecoverableAgentError(error: unknown): boolean {
     message.includes("patch does not apply") ||
     message.includes("patch failed:") ||
     message.includes("planner patch references missing file path") ||
+    message.includes("operation validation failed") ||
+    message.includes("operation failed:") ||
     message.includes("no such file or directory") ||
     message.includes("planner failed to generate a valid patch after retries")
   );
@@ -155,6 +158,7 @@ async function run(): Promise<void> {
   const mode = pickMode();
   const maxPatchAttempts = 3;
   let plan: PlanOutput | null = null;
+  let operationAppliedFiles: string[] = [];
   let lastPatchError: string | null = null;
   const memorySummary = summarizeMemory(memory);
 
@@ -164,6 +168,7 @@ async function run(): Promise<void> {
       graphSummary: graph.summary,
       memorySummary,
       requiredFocus: "AI engineering docs quality, system design UX, failure mode explorer depth, API resilience, observability",
+      candidateFiles: graph.candidateFiles,
     });
 
     await logEvent("INFO", "Planner decision", {
@@ -183,8 +188,13 @@ async function run(): Promise<void> {
     }
 
     try {
-      await validatePatchNotEmpty(candidatePlan.diffPatch);
-      await applyDiffPatch(candidatePlan.diffPatch);
+      if (candidatePlan.operations.length > 0) {
+        operationAppliedFiles = await applyOperations(candidatePlan.operations);
+      } else {
+        await validatePatchNotEmpty(candidatePlan.diffPatch);
+        await applyDiffPatch(candidatePlan.diffPatch);
+      }
+
       plan = candidatePlan;
       break;
     } catch (error) {
@@ -200,13 +210,14 @@ async function run(): Promise<void> {
         message.includes("patch missing unified diff headers") ||
         message.includes("missing file path") ||
         message.includes("no such file or directory");
+      const operationError = message.includes("operation validation failed") || message.includes("operation failed:");
 
       await logEvent("WARN", "Planner patch attempt failed", {
         attempt,
         error: rawMessage,
       });
 
-      if (malformedPatch) {
+      if (malformedPatch && candidatePlan.operations.length === 0) {
         try {
           const repairedPatch = await repairMalformedPatch({
             malformedPatch: candidatePlan.diffPatch,
@@ -236,8 +247,10 @@ async function run(): Promise<void> {
         }
       }
 
-      if (!malformedPatch || attempt === maxPatchAttempts) {
-        if (!malformedPatch) {
+      const retryableIssue = malformedPatch || operationError;
+
+      if (!retryableIssue || attempt === maxPatchAttempts) {
+        if (!retryableIssue) {
           throw error;
         }
 
@@ -262,6 +275,7 @@ async function run(): Promise<void> {
     plan = {
       action: "fallback-docs-update",
       targetFiles: [fallbackFile],
+      operations: [],
       diffPatch: "",
       summary: "Applied resilient autonomous docs update after patch retry failures.",
       rationale: "Keeps autonomous iteration productive even when model-generated diffs are non-applicable.",
@@ -273,7 +287,7 @@ async function run(): Promise<void> {
 
   const changedFiles = await getChangedFiles();
   const patchFiles = plan.diffPatch ? extractTargetFilesFromPatch(plan.diffPatch) : [];
-  const candidateFiles = Array.from(new Set([...changedFiles, ...patchFiles])).filter(Boolean);
+  const candidateFiles = Array.from(new Set([...changedFiles, ...patchFiles, ...operationAppliedFiles])).filter(Boolean);
 
   try {
     await validateNoDuplicateBlocks(candidateFiles);

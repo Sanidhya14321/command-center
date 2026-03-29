@@ -1,9 +1,11 @@
 import Groq from "groq-sdk";
 import { buildPlannerUserPrompt, PLANNER_SYSTEM_PROMPT, type AgentMode } from "./prompts";
+import type { EditOperation } from "./operationEditor";
 
 export type PlanOutput = {
   action: string;
   targetFiles: string[];
+  operations: EditOperation[];
   diffPatch: string;
   summary: string;
   rationale: string;
@@ -44,19 +46,35 @@ function extractPatchFromText(text: string): string {
 }
 
 function parsePlan(content: string): PlanOutput {
-  const parsed = JSON.parse(content) as PlanOutput;
-  if (!parsed.action || !Array.isArray(parsed.targetFiles) || !parsed.diffPatch) {
+  const parsed = JSON.parse(content) as Partial<PlanOutput>;
+  if (!parsed.action || !Array.isArray(parsed.targetFiles) || !parsed.summary || !parsed.commitMessage || !parsed.mode) {
     throw new Error("Invalid planner JSON shape");
   }
 
-  const cleanPatch = sanitizePatch(parsed.diffPatch);
-  if (!hasUnifiedHeaders(cleanPatch)) {
-    throw new Error("Planner patch missing unified diff headers");
+  const operations = Array.isArray(parsed.operations) ? (parsed.operations.slice(0, 2) as EditOperation[]) : [];
+  let cleanPatch = "";
+
+  if (typeof parsed.diffPatch === "string" && parsed.diffPatch.trim()) {
+    cleanPatch = sanitizePatch(parsed.diffPatch);
+    if (!hasUnifiedHeaders(cleanPatch)) {
+      throw new Error("Planner patch missing unified diff headers");
+    }
+  }
+
+  if (!operations.length && !cleanPatch) {
+    throw new Error("Planner returned neither operations nor usable diff patch");
   }
 
   return {
-    ...parsed,
+    action: parsed.action,
+    targetFiles: parsed.targetFiles,
+    operations,
     diffPatch: cleanPatch,
+    summary: parsed.summary,
+    rationale: parsed.rationale ?? "No rationale provided.",
+    commitMessage: parsed.commitMessage,
+    qualityScore: Math.max(1, Math.min(10, parsed.qualityScore ?? 6)),
+    mode: parsed.mode,
   };
 }
 
@@ -70,6 +88,7 @@ export async function planNextChange(params: {
   graphSummary: string;
   memorySummary: string;
   requiredFocus: string;
+  candidateFiles: string[];
 }): Promise<PlanOutput> {
   if (!process.env.GROQ_API_KEY) {
     throw new Error("GROQ_API_KEY is required for autonomous planner");
@@ -81,7 +100,12 @@ export async function planNextChange(params: {
 
   for (const model of MODEL_CHAIN) {
     try {
-      const strictPrompt = `${userPrompt}\n\nCritical output rule: diffPatch must be a valid git unified diff patch with file headers (--- a/<path> and +++ b/<path>). Do not use markdown code fences.`;
+      const strictPrompt = `${userPrompt}
+
+    Critical output rule:
+    - Prefer operations array with at most 2 operations.
+    - Use diffPatch only when operations are not feasible.
+    - If using diffPatch, it must be a valid git unified diff patch with file headers (--- a/<path> and +++ b/<path>) and no markdown fences.`;
       const completion = await groq.chat.completions.create({
         model,
         temperature: 0.2,
