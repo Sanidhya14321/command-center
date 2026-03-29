@@ -92,45 +92,21 @@ function tryFuzzyReplaceBlock(current: string, find: string, replace: string): s
   const currentLines = current.split("\n");
   const findLines = find.split("\n");
 
-  const normalizedFind = findLines.map(normalizeLineForMatch);
-  const nonEmptyFind = normalizedFind.filter(Boolean);
-  if (nonEmptyFind.length === 0) {
+  if (findLines.length === 0) {
     return null;
   }
 
-  const candidateStarts: number[] = [];
-  const firstNeedle = nonEmptyFind[0];
-
-  for (let i = 0; i < currentLines.length; i += 1) {
-    if (normalizeLineForMatch(currentLines[i]) === firstNeedle) {
-      candidateStarts.push(i);
-    }
-  }
-
+  const normalizedFind = findLines.map(normalizeLineForMatch);
   const matchedStarts: number[] = [];
 
-  for (const start of candidateStarts) {
-    let j = start;
+  for (let start = 0; start + findLines.length <= currentLines.length; start += 1) {
     let ok = true;
-
-    for (let k = 0; k < normalizedFind.length; k += 1) {
-      const needle = normalizedFind[k];
-      if (!needle) {
-        continue;
-      }
-
-      while (j < currentLines.length && !normalizeLineForMatch(currentLines[j])) {
-        j += 1;
-      }
-
-      if (j >= currentLines.length || normalizeLineForMatch(currentLines[j]) !== needle) {
+    for (let offset = 0; offset < findLines.length; offset += 1) {
+      if (normalizeLineForMatch(currentLines[start + offset]) !== normalizedFind[offset]) {
         ok = false;
         break;
       }
-
-      j += 1;
     }
-
     if (ok) {
       matchedStarts.push(start);
     }
@@ -141,8 +117,7 @@ function tryFuzzyReplaceBlock(current: string, find: string, replace: string): s
   }
 
   const start = matchedStarts[0];
-  const exactLineCount = findLines.length;
-  const end = Math.min(currentLines.length, start + exactLineCount);
+  const end = start + findLines.length;
   const replacementLines = replace.split("\n");
 
   const nextLines = [...currentLines.slice(0, start), ...replacementLines, ...currentLines.slice(end)];

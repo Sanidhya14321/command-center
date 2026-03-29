@@ -340,21 +340,56 @@ async function run(): Promise<void> {
     throw new Error("Component guard: no component files were modified by the final plan");
   }
 
-  try {
-    await validateNoDuplicateBlocks(candidateFiles);
+  const runValidation = async (files: string[]): Promise<void> => {
+    await validateNoDuplicateBlocks(files);
     await runBuildSafetyChecks();
+  };
+
+  try {
+    await runValidation(candidateFiles);
   } catch (error) {
+    const validationError = error instanceof Error ? error.message : String(error);
     await rollbackFiles(candidateFiles);
     await logEvent("ERROR", "Validation failed; rolled back patch", {
-      error: error instanceof Error ? error.message : String(error),
+      error: validationError,
       files: candidateFiles,
     });
 
     if (hardOutcomeRequired) {
-      throw error;
-    }
+      await logEvent("WARN", "Strict mode validation failure; retrying with forced Groq component recovery", {
+        error: validationError,
+      });
 
-    return;
+      const recovery = await applyForcedComponentRecovery({
+        mode: "editor",
+        graphSummary: graph.summary,
+        memorySummary,
+        candidateFiles: graph.candidateFiles,
+        reason: `Validation/build failed after apply: ${validationError}`,
+      });
+
+      plan = recovery.plan;
+      operationAppliedFiles = recovery.changedFiles;
+
+      const retryChangedFiles = await getChangedFiles();
+      const retryCandidateFiles = Array.from(new Set([...retryChangedFiles, ...operationAppliedFiles])).filter(Boolean);
+
+      if (!retryCandidateFiles.some((filePath) => isComponentFile(filePath))) {
+        throw new Error("Component guard: recovery retry did not modify any component files");
+      }
+
+      try {
+        await runValidation(retryCandidateFiles);
+      } catch (retryError) {
+        const retryMessage = retryError instanceof Error ? retryError.message : String(retryError);
+        await rollbackFiles(retryCandidateFiles);
+        throw new Error(`Validation failed after forced recovery retry: ${retryMessage}`);
+      }
+
+      candidateFiles = retryCandidateFiles;
+    } else {
+      return;
+    }
   }
 
   await maybeDelay();
