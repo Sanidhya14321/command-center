@@ -1,36 +1,63 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# FDE + AI Engineering Command Center
 
-## Getting Started
+Production-quality Next.js App Router resource hub for Forward Deployment Engineering, AI Engineering interview prep, and a searchable 300+ project repository.
 
-First, run the development server:
+## Stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- Next.js App Router
+- Tailwind CSS
+- Framer Motion
+- Lucide React
+- groq-sdk
+- react-markdown + remark-gfm
+- Fuse.js
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Features
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- Material Design 3 dark-mode-first command-center UI
+- Sticky navigation rail + compact mobile drawer
+- Documentation-first sections with anchor links and sticky sub-navigation
+- FDE Playbook markdown rendering with rich callout and code styles
+- AI Engineering Mastery with practical decision matrix and checklists
+- Live Signal Intelligence panel with resilient server fallback
+- Interactive Agent Lab using Groq model llama3-70b-8192
+- Searchable/sortable/paginated 300-row Data Science project repository
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Routes
 
-## Learn More
+- / : Command center hub
+- /playbook : Focused FDE playbook page
+- /repository : Dedicated project table page
+- /api/signals : Signal feed API (with filtering, scoring, Groq summarization)
+- /api/agent : Interview generation API
 
-To learn more about Next.js, take a look at the following resources:
+## Environment
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Copy .env.example values into local environment:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- GROQ_API_KEY
+- NEWS_API_KEY
 
-## Deploy on Vercel
+Security notes:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- Secrets are only used in server routes
+- No client-side secret exposure
+- API handlers include graceful fallback logic
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Local Development
+
+1. Install dependencies: npm install
+2. Start dev server: npm run dev
+3. Production check: npm run build
+4. Lint check: npm run lint
+
+## Future Expansion Hooks
+
+Current architecture is prepared for:
+
+- structured model responses
+- function/tool calling
+- eval pipelines
+- conversation memory persistence
+- logging and observability integrations
+- source citation graph, deduplication, and ranking for signal intelligence
