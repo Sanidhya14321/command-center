@@ -3,18 +3,53 @@ import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
 
+function parseStatusPath(line: string): string | null {
+  if (!line || line.length < 4) return null;
+
+  const candidate = line.slice(3).trim();
+  if (!candidate) return null;
+
+  if (candidate.includes(" -> ")) {
+    const parts = candidate.split(" -> ");
+    return parts[parts.length - 1]?.trim() || null;
+  }
+
+  return candidate;
+}
+
 export async function getChangedFiles(): Promise<string[]> {
   const { stdout } = await execFileAsync("git", ["status", "--short"]);
-  return stdout
+  const files = stdout
     .split("\n")
-    .map((line) => line.trim())
+    .map((line) => parseStatusPath(line))
     .filter(Boolean)
-    .map((line) => line.slice(3));
+    .map((file) => file as string);
+
+  return Array.from(new Set(files));
 }
 
 export async function rollbackFiles(files: string[]): Promise<void> {
   if (!files.length) return;
-  await execFileAsync("git", ["restore", "--", ...files]);
+
+  const tracked: string[] = [];
+  const untracked: string[] = [];
+
+  for (const file of files) {
+    try {
+      await execFileAsync("git", ["ls-files", "--error-unmatch", "--", file]);
+      tracked.push(file);
+    } catch {
+      untracked.push(file);
+    }
+  }
+
+  if (tracked.length) {
+    await execFileAsync("git", ["restore", "--", ...tracked]);
+  }
+
+  if (untracked.length) {
+    await execFileAsync("git", ["clean", "-f", "--", ...untracked]);
+  }
 }
 
 export async function commitAndPush(commitMessage: string): Promise<void> {
