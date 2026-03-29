@@ -1,1 +1,2 @@
 2026-03-29T18:11:38.458Z | Planner produced malformed patch: Command failed: git apply --check /tmp/autonomous-agent-1774807898453.patch error: corrupt patch at line 11 
+2026-03-29T18:17:01.073Z | Planner produced malformed patch: Command failed: git apply --check /tmp/autonomous-agent-1774808221068.patch error: corrupt patch at line 12 
