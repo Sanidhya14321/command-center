@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import Groq from "groq-sdk";
 import { chapters } from "@/data/aiCurriculum";
+import { createGroqCompletion, hasGroqApiKey } from "@/lib/groqFallback";
 
 type ChapterExpansion = {
   chapterId: number;
@@ -46,15 +46,12 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Chapter not found" }, { status: 404 });
   }
 
-  const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey) {
+  if (!hasGroqApiKey()) {
     return NextResponse.json(fallbackExpansion(chapterId));
   }
 
   try {
-    const groq = new Groq({ apiKey });
-    const completion = await groq.chat.completions.create({
-      model: "llama3-70b-8192",
+    const completion = await createGroqCompletion({
       temperature: 0.25,
       max_tokens: 700,
       response_format: { type: "json_object" },
@@ -71,7 +68,7 @@ export async function GET(request: Request) {
       ],
     });
 
-    const raw = completion.choices[0]?.message?.content?.trim() ?? "{}";
+    const raw = completion.content?.trim() ?? "{}";
     let parsed: {
       expandedSummary?: string;
       interviewPrompts?: string[];

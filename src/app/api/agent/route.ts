@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import Groq from "groq-sdk";
+import { createGroqCompletion, hasGroqApiKey } from "@/lib/groqFallback";
 
-const MODEL = "llama3-70b-8192";
+const MODEL = process.env.PRIMARY_MODEL || "llama3-70b-8192";
 
 export async function POST(request: Request) {
   try {
@@ -12,8 +12,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
     }
 
-    const apiKey = process.env.GROQ_API_KEY;
-    if (!apiKey) {
+    if (!hasGroqApiKey()) {
       return NextResponse.json({
         model: MODEL,
         output:
@@ -21,9 +20,7 @@ export async function POST(request: Request) {
       });
     }
 
-    const groq = new Groq({ apiKey });
-    const completion = await groq.chat.completions.create({
-      model: MODEL,
+    const completion = await createGroqCompletion({
       temperature: 0.4,
       max_tokens: 900,
       messages: [
@@ -39,11 +36,9 @@ export async function POST(request: Request) {
       ],
     });
 
-    const output = completion.choices[0]?.message?.content?.trim();
-
     return NextResponse.json({
-      model: MODEL,
-      output: output ?? "No output generated.",
+      model: completion.model,
+      output: completion.content ?? "No output generated.",
     });
   } catch (error) {
     return NextResponse.json(
