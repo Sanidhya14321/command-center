@@ -75,7 +75,9 @@ function isRecoverableAgentError(error: unknown): boolean {
     message.includes("not supported") ||
     message.includes("invalid_request_error") ||
     message.includes("planner failed") ||
-    message.includes("planner returned empty output")
+    message.includes("planner returned empty output") ||
+    message.includes("planner did not return unified diff patch") ||
+    message.includes("invalid planner json shape")
   );
 }
 
