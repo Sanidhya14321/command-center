@@ -3,7 +3,7 @@ import path from "node:path";
 import { applyDiffPatch, extractTargetFilesFromPatch } from "./fileEditor";
 import { commitAndPush, getChangedFiles, rollbackFiles } from "./gitManager";
 import { logEvent } from "./logger";
-import { planNextChange, type PlanOutput } from "./planner";
+import { planNextChange, repairMalformedPatch, type PlanOutput } from "./planner";
 import { buildProjectGraph } from "./projectGraph";
 import { type AgentMode } from "./prompts";
 import { runBuildSafetyChecks, validateNoDuplicateBlocks, validatePatchNotEmpty } from "./validator";
@@ -141,7 +141,8 @@ async function run(): Promise<void> {
       plan = candidatePlan;
       break;
     } catch (error) {
-      const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+      const rawMessage = error instanceof Error ? error.message : String(error);
+      const message = rawMessage.toLowerCase();
       const malformedPatch =
         message.includes("malformed patch") ||
         message.includes("corrupt patch") ||
@@ -150,8 +151,38 @@ async function run(): Promise<void> {
 
       await logEvent("WARN", "Planner patch attempt failed", {
         attempt,
-        error: error instanceof Error ? error.message : String(error),
+        error: rawMessage,
       });
+
+      if (malformedPatch) {
+        try {
+          const repairedPatch = await repairMalformedPatch({
+            malformedPatch: candidatePlan.diffPatch,
+            applyError: rawMessage,
+          });
+
+          await validatePatchNotEmpty(repairedPatch);
+          await applyDiffPatch(repairedPatch);
+
+          plan = {
+            ...candidatePlan,
+            diffPatch: repairedPatch,
+          };
+
+          await logEvent("INFO", "Malformed patch repaired successfully", {
+            attempt,
+            mode: candidatePlan.mode,
+            files: candidatePlan.targetFiles,
+          });
+
+          break;
+        } catch (repairError) {
+          await logEvent("WARN", "Patch repair failed", {
+            attempt,
+            error: repairError instanceof Error ? repairError.message : String(repairError),
+          });
+        }
+      }
 
       if (!malformedPatch || attempt === maxPatchAttempts) {
         throw error;

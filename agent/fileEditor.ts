@@ -32,11 +32,11 @@ export async function applyDiffPatch(diffPatch: string): Promise<void> {
   const patchPath = path.join(os.tmpdir(), `autonomous-agent-${Date.now()}.patch`);
   await fs.writeFile(patchPath, normalizedPatch, "utf-8");
   try {
-    await execFileAsync("git", ["apply", "--check", patchPath], {
+    await execFileAsync("git", ["apply", "--check", "--recount", "--unidiff-zero", patchPath], {
       maxBuffer: 1024 * 1024 * 4,
     });
 
-    await execFileAsync("git", ["apply", "--whitespace=nowarn", patchPath], {
+    await execFileAsync("git", ["apply", "--whitespace=nowarn", "--recount", "--unidiff-zero", patchPath], {
       maxBuffer: 1024 * 1024 * 4,
     });
   } catch (error) {

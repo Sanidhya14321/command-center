@@ -27,6 +27,22 @@ function hasUnifiedHeaders(patch: string): boolean {
   return patch.includes("diff --git") || (/^---\s+a\/.+/m.test(patch) && /^\+\+\+\s+b\/.+/m.test(patch));
 }
 
+function extractPatchFromText(text: string): string {
+  const normalized = sanitizePatch(text);
+
+  const diffIndex = normalized.indexOf("diff --git");
+  if (diffIndex >= 0) {
+    return normalized.slice(diffIndex).trim();
+  }
+
+  const unifiedIndex = normalized.search(/^---\s+a\//m);
+  if (unifiedIndex >= 0) {
+    return normalized.slice(unifiedIndex).trim();
+  }
+
+  return normalized;
+}
+
 function parsePlan(content: string): PlanOutput {
   const parsed = JSON.parse(content) as PlanOutput;
   if (!parsed.action || !Array.isArray(parsed.targetFiles) || !parsed.diffPatch) {
@@ -90,4 +106,68 @@ export async function planNextChange(params: {
   }
 
   throw lastError instanceof Error ? lastError : new Error("Planner failed for all fallback models");
+}
+
+export async function repairMalformedPatch(params: {
+  malformedPatch: string;
+  applyError: string;
+}): Promise<string> {
+  if (!process.env.GROQ_API_KEY) {
+    throw new Error("GROQ_API_KEY is required for patch repair");
+  }
+
+  const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+  const prompt = [
+    "Repair the malformed git patch below.",
+    "Return only a valid unified diff patch.",
+    "Requirements:",
+    "- No markdown fences",
+    "- Must include --- a/<path> and +++ b/<path>",
+    "- Must include proper @@ hunks",
+    "- Preserve intended changes",
+    "Apply error:",
+    params.applyError,
+    "Malformed patch input:",
+    params.malformedPatch,
+  ].join("\n\n");
+
+  let lastError: unknown;
+
+  for (const model of MODEL_CHAIN) {
+    try {
+      const completion = await groq.chat.completions.create({
+        model,
+        temperature: 0,
+        max_tokens: 1800,
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are a patch repair assistant. Output only a valid git unified diff patch with no commentary.",
+          },
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+      });
+
+      const content = completion.choices[0]?.message?.content;
+      if (!content || typeof content !== "string") {
+        throw new Error("Patch repair returned empty output");
+      }
+
+      const repairedPatch = extractPatchFromText(content);
+      if (!hasUnifiedHeaders(repairedPatch)) {
+        throw new Error("Patch repair did not return unified diff headers");
+      }
+
+      return repairedPatch;
+    } catch (error) {
+      lastError = error;
+      if (!shouldRetry(error)) break;
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error("Failed to repair malformed patch");
 }
