@@ -44,6 +44,9 @@ export async function applyDiffPatch(diffPatch: string): Promise<void> {
     if (message.toLowerCase().includes("corrupt patch")) {
       throw new Error(`Planner produced malformed patch: ${message}`);
     }
+    if (message.toLowerCase().includes("no such file or directory")) {
+      throw new Error(`Planner patch references missing file path: ${message}`);
+    }
     throw error;
   } finally {
     await fs.rm(patchPath, { force: true });

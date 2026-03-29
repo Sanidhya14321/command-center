@@ -124,6 +124,8 @@ export async function repairMalformedPatch(params: {
     "- No markdown fences",
     "- Must include --- a/<path> and +++ b/<path>",
     "- Must include proper @@ hunks",
+    "- If the target file does not exist, convert patch to a file-creation patch using --- /dev/null and +++ b/<path>",
+    "- Ensure parent directories can be created by git apply",
     "- Preserve intended changes",
     "Apply error:",
     params.applyError,

@@ -81,6 +81,8 @@ function isRecoverableAgentError(error: unknown): boolean {
     message.includes("invalid planner json shape") ||
     message.includes("planner produced malformed patch") ||
     message.includes("corrupt patch at line") ||
+    message.includes("planner patch references missing file path") ||
+    message.includes("no such file or directory") ||
     message.includes("planner failed to generate a valid patch after retries")
   );
 }
@@ -147,7 +149,9 @@ async function run(): Promise<void> {
         message.includes("malformed patch") ||
         message.includes("corrupt patch") ||
         message.includes("unified diff patch") ||
-        message.includes("patch missing unified diff headers");
+        message.includes("patch missing unified diff headers") ||
+        message.includes("missing file path") ||
+        message.includes("no such file or directory");
 
       await logEvent("WARN", "Planner patch attempt failed", {
         attempt,
