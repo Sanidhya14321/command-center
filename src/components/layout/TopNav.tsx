@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Command, Compass, Layers, Radar, Rocket } from "lucide-react";
+import { ThemeSelector } from "./ThemeSelector";
 
 const links = [
   { href: "#hero", label: "Overview", icon: <Compass className="size-4" /> },
@@ -36,6 +37,7 @@ export function TopNav() {
             </a>
           ))}
         </nav>
+        <ThemeSelector />
       </div>
     </motion.header>
   );

@@ -6,6 +6,7 @@
 
 @import "tailwindcss";
 
+/* Default dark theme */
 :root {
   --m3-surface: #1c1b1f;
   --m3-surface-dim: #141218;
@@ -34,6 +35,116 @@
   --font-display: var(--font-inter);
   --font-body: var(--font-inter);
   --font-mono: var(--font-jetbrains-mono);
+}
+
+/* Light theme */
+[data-theme="light"] {
+  --m3-surface: #fffbfe;
+  --m3-surface-dim: #f8f1f7;
+  --m3-surface-bright: #fffbfe;
+  --m3-surface-container-lowest: #ffedfa;
+  --m3-surface-container-low: #fef7fb;
+  --m3-surface-container: #faf8fd;
+  --m3-surface-container-high: #f4eff7;
+  --m3-surface-container-highest: #eee9f1;
+  --m3-primary: #381e72;
+  --m3-on-primary: #ffffff;
+  --m3-secondary: #332d41;
+  --m3-on-secondary: #ffffff;
+  --m3-accent: #7d5ba6;
+  --m3-on-surface: #1c1b1f;
+  --m3-on-surface-variant: #4a4458;
+  --m3-outline: #7d7d8f;
+  --m3-outline-variant: #cac4d0;
+  --m3-error: #b3261e;
+}
+
+/* Ocean theme */
+[data-theme="ocean"] {
+  --m3-surface: #0a1628;
+  --m3-surface-dim: #051020;
+  --m3-surface-bright: #1a2e47;
+  --m3-surface-container-lowest: #020820;
+  --m3-surface-container-low: #0f1d35;
+  --m3-surface-container: #152d4a;
+  --m3-surface-container-high: #1d3a5a;
+  --m3-surface-container-highest: #26476a;
+  --m3-primary: #64b5f6;
+  --m3-on-primary: #001e3c;
+  --m3-secondary: #4dd0e1;
+  --m3-on-secondary: #003d47;
+  --m3-accent: #81d4fa;
+  --m3-on-surface: #e0f2f1;
+  --m3-on-surface-variant: #b2dfdb;
+  --m3-outline: #7fb3d5;
+  --m3-outline-variant: #4a6fa5;
+  --m3-error: #ffb4ab;
+}
+
+/* Forest theme */
+[data-theme="forest"] {
+  --m3-surface: #0d2818;
+  --m3-surface-dim: #051410;
+  --m3-surface-bright: #1d3e2a;
+  --m3-surface-container-lowest: #020a07;
+  --m3-surface-container-low: #122315;
+  --m3-surface-container: #1a331f;
+  --m3-surface-container-high: #254127;
+  --m3-surface-container-highest: #305530;
+  --m3-primary: #6ee7b7;
+  --m3-on-primary: #001a0f;
+  --m3-secondary: #5dd9a3;
+  --m3-on-secondary: #001f15;
+  --m3-accent: #7ffbce;
+  --m3-on-surface: #d6f3e8;
+  --m3-on-surface-variant: #b2d9cc;
+  --m3-outline: #7fc7a2;
+  --m3-outline-variant: #4f8768;
+  --m3-error: #ffb4ab;
+}
+
+/* Sunset theme */
+[data-theme="sunset"] {
+  --m3-surface: #2b1810;
+  --m3-surface-dim: #1d1008;
+  --m3-surface-bright: #472d1d;
+  --m3-surface-container-lowest: #140a03;
+  --m3-surface-container-low: #271f17;
+  --m3-surface-container: #32261f;
+  --m3-surface-container-high: #3d3228;
+  --m3-surface-container-highest: #4a3d32;
+  --m3-primary: #ffb74d;
+  --m3-on-primary: #3e2723;
+  --m3-secondary: #ffb74d;
+  --m3-on-secondary: #4e342e;
+  --m3-accent: #ff9800;
+  --m3-on-surface: #fce5d8;
+  --m3-on-surface-variant: #d4a89d;
+  --m3-outline: #cc9982;
+  --m3-outline-variant: #8b6f60;
+  --m3-error: #ffb4ab;
+}
+
+/* Cyberpunk theme */
+[data-theme="cyberpunk"] {
+  --m3-surface: #0d0b26;
+  --m3-surface-dim: #05031f;
+  --m3-surface-bright: #1f1b3f;
+  --m3-surface-container-lowest: #02001a;
+  --m3-surface-container-low: #13102f;
+  --m3-surface-container: #1b1a3e;
+  --m3-surface-container-high: #25234a;
+  --m3-surface-container-highest: #352c5a;
+  --m3-primary: #e040fb;
+  --m3-on-primary: #4a0080;
+  --m3-secondary: #00f0ff;
+  --m3-on-secondary: #003344;
+  --m3-accent: #76ff03;
+  --m3-on-surface: #f0e1ff;
+  --m3-on-surface-variant: #d6bbff;
+  --m3-outline: #9784cc;
+  --m3-outline-variant: #605e8a;
+  --m3-error: #ffb4ab;
 }
 
 @theme inline {
