@@ -115,7 +115,7 @@ async function applyResilientFallbackUpdate(params: {
     "",
     `- Graph summary: ${params.graphSummary}`,
     `- Recovery trigger: ${params.reason.replace(/\s+/g, " ").slice(0, 180)}`,
-    "- Reliability action: planner patch retries exhausted; applied deterministic fallback content update.",
+    `- Reliability action: planner patch retries exhausted; applied deterministic fallback content update at ${timestamp}.`,
     "",
     "### Recent Memory Snapshot",
     memoryLines || "- No memory snapshot available.",

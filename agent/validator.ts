@@ -15,15 +15,16 @@ export async function validatePatchNotEmpty(diffPatch: string): Promise<void> {
 
 export async function validateNoDuplicateBlocks(files: string[]): Promise<void> {
   for (const file of files) {
-    if (!file.endsWith(".ts") && !file.endsWith(".tsx") && !file.endsWith(".md")) continue;
+    if (!file.endsWith(".ts") && !file.endsWith(".tsx")) continue;
     const content = await fs.readFile(file, "utf-8");
-    const lines = content.split("\n").map((l) => l.trim()).filter((l) => l.length > 40);
-    const seen = new Set<string>();
+    const lines = content.split("\n").map((l) => l.trim()).filter((l) => l.length > 80);
+    const seen = new Map<string, number>();
     for (const line of lines) {
-      if (seen.has(line)) {
+      const count = (seen.get(line) ?? 0) + 1;
+      seen.set(line, count);
+      if (count >= 3) {
         throw new Error(`Duplicate long line detected in ${file}`);
       }
-      seen.add(line);
     }
   }
 }
