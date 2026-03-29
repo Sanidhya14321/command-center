@@ -17,12 +17,31 @@ const FALLBACK_MODEL = process.env.FALLBACK_MODEL || "llama-3.3-70b-versatile";
 const SAFE_MODEL = process.env.SAFE_MODEL || "mixtral-8x7b-32768";
 const MODEL_CHAIN = Array.from(new Set([PRIMARY_MODEL, FALLBACK_MODEL, SAFE_MODEL]));
 
+function sanitizePatch(rawPatch: string): string {
+  const trimmed = rawPatch.trim();
+  const withoutFence = trimmed.replace(/^```(?:diff)?\s*/i, "").replace(/```$/i, "").trim();
+  return withoutFence;
+}
+
+function hasUnifiedHeaders(patch: string): boolean {
+  return patch.includes("diff --git") || (/^---\s+a\/.+/m.test(patch) && /^\+\+\+\s+b\/.+/m.test(patch));
+}
+
 function parsePlan(content: string): PlanOutput {
   const parsed = JSON.parse(content) as PlanOutput;
   if (!parsed.action || !Array.isArray(parsed.targetFiles) || !parsed.diffPatch) {
     throw new Error("Invalid planner JSON shape");
   }
-  return parsed;
+
+  const cleanPatch = sanitizePatch(parsed.diffPatch);
+  if (!hasUnifiedHeaders(cleanPatch)) {
+    throw new Error("Planner patch missing unified diff headers");
+  }
+
+  return {
+    ...parsed,
+    diffPatch: cleanPatch,
+  };
 }
 
 function shouldRetry(error: unknown): boolean {
@@ -46,6 +65,7 @@ export async function planNextChange(params: {
 
   for (const model of MODEL_CHAIN) {
     try {
+      const strictPrompt = `${userPrompt}\n\nCritical output rule: diffPatch must be a valid git unified diff patch with file headers (--- a/<path> and +++ b/<path>). Do not use markdown code fences.`;
       const completion = await groq.chat.completions.create({
         model,
         temperature: 0.2,
@@ -53,7 +73,7 @@ export async function planNextChange(params: {
         response_format: { type: "json_object" },
         messages: [
           { role: "system", content: PLANNER_SYSTEM_PROMPT },
-          { role: "user", content: userPrompt },
+          { role: "user", content: strictPrompt },
         ],
       });
 

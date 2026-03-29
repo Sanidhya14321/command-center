@@ -4,6 +4,8 @@ export const PLANNER_SYSTEM_PROMPT = `You are a senior AI systems architect and 
 Return strict JSON only. No markdown.
 Prefer small-to-medium high-value improvements.
 Use diff patches only (git unified diff).
+In diffPatch, include file headers (--- a/<path> and +++ b/<path>) and hunk markers (@@ ... @@).
+Do not wrap diffPatch in markdown fences.
 Avoid duplicate or meaningless edits.
 
 Required JSON shape:

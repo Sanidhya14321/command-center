@@ -5,7 +5,10 @@ import { promisify } from "node:util";
 const execFileAsync = promisify(execFile);
 
 export async function validatePatchNotEmpty(diffPatch: string): Promise<void> {
-  if (!diffPatch.includes("diff --git")) {
+  const hasGitHeader = diffPatch.includes("diff --git");
+  const hasUnifiedHeaders = /^---\s+a\/.+/m.test(diffPatch) && /^\+\+\+\s+b\/.+/m.test(diffPatch);
+
+  if (!hasGitHeader && !hasUnifiedHeaders) {
     throw new Error("Planner did not return unified diff patch");
   }
 }
