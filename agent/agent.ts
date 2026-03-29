@@ -25,6 +25,7 @@ type MemoryState = {
 };
 
 const MEMORY_PATH = path.join(process.cwd(), "agent", "memory.json");
+const RECOVERY_HEARTBEAT_PATH = path.join(process.cwd(), ".github", "agent-recovery.log");
 
 async function loadMemory(): Promise<MemoryState> {
   const raw = await fs.readFile(MEMORY_PATH, "utf-8");
@@ -82,6 +83,19 @@ function isRecoverableAgentError(error: unknown): boolean {
     message.includes("corrupt patch at line") ||
     message.includes("planner failed to generate a valid patch after retries")
   );
+}
+
+async function commitRecoveryHeartbeat(reason: string): Promise<void> {
+  if (process.env.GITHUB_ACTIONS !== "true") {
+    return;
+  }
+
+  await fs.mkdir(path.dirname(RECOVERY_HEARTBEAT_PATH), { recursive: true });
+  const timestamp = new Date().toISOString();
+  const sanitizedReason = reason.replace(/\s+/g, " ").slice(0, 240);
+  await fs.appendFile(RECOVERY_HEARTBEAT_PATH, `${timestamp} | ${sanitizedReason}\n`, "utf-8");
+
+  await commitAndPush("chore(agent): recovery heartbeat after planner failure");
 }
 
 async function run(): Promise<void> {
@@ -198,6 +212,14 @@ run().catch(async (error) => {
   if (strictMode || !isRecoverableAgentError(error)) {
     process.exitCode = 1;
     return;
+  }
+
+  try {
+    await commitRecoveryHeartbeat(message);
+  } catch (heartbeatError) {
+    await logEvent("WARN", "Failed to commit recovery heartbeat", {
+      error: heartbeatError instanceof Error ? heartbeatError.message : String(heartbeatError),
+    });
   }
 
   console.warn("[agent] Recoverable failure detected; exiting without failing workflow. Set AGENT_STRICT_MODE=true to fail fast.");
