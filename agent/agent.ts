@@ -132,6 +132,7 @@ async function applyForcedComponentRecovery(params: {
         candidateFiles: componentCandidates,
         requireComponentTarget: true,
         operationsOnly: true,
+        allowedOperationTypes: ["append", "create_file"],
       });
 
       if (!recoveryPlan.operations.length) {

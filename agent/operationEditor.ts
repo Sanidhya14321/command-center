@@ -124,6 +124,18 @@ function tryFuzzyReplaceBlock(current: string, find: string, replace: string): s
   return nextLines.join("\n");
 }
 
+function buildSafeAppendContent(filePath: string, content: string): string {
+  const isTsLike = filePath.endsWith(".ts") || filePath.endsWith(".tsx");
+  const forcedMode = process.env.AGENT_FORCE_COMPONENT_UPDATE === "true";
+
+  if (!forcedMode || !isTsLike) {
+    return content;
+  }
+
+  const sanitized = content.replace(/\*\//g, "* /");
+  return ["/* Autonomous Groq component update", sanitized.trimEnd(), "*/"].join("\n");
+}
+
 export async function applyOperations(operations: EditOperation[]): Promise<string[]> {
   if (!Array.isArray(operations) || operations.length === 0) {
     throw new Error("Operation validation failed: operations array cannot be empty");
@@ -161,7 +173,8 @@ export async function applyOperations(operations: EditOperation[]): Promise<stri
     if (op.type === "append") {
       const current = await fs.readFile(absolutePath, "utf-8").catch(() => "");
       const separator = current && !current.endsWith("\n") ? "\n" : "";
-      const next = `${current}${separator}${op.content.trimEnd()}\n`;
+      const safeContent = buildSafeAppendContent(op.filePath, op.content);
+      const next = `${current}${separator}${safeContent.trimEnd()}\n`;
       if (next === current) {
         throw new Error(`Operation failed: append produced no changes in ${op.filePath}`);
       }

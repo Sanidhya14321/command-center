@@ -63,6 +63,7 @@ function parsePlan(
   options?: {
     requireComponentTarget?: boolean;
     operationsOnly?: boolean;
+    allowedOperationTypes?: Array<EditOperation["type"]>;
   },
 ): PlanOutput {
   const parsed = JSON.parse(content) as Partial<PlanOutput>;
@@ -72,6 +73,14 @@ function parsePlan(
 
   const operations = Array.isArray(parsed.operations) ? (parsed.operations.slice(0, 2) as EditOperation[]) : [];
   let cleanPatch = "";
+
+  if (options?.allowedOperationTypes?.length) {
+    for (const op of operations) {
+      if (!options.allowedOperationTypes.includes(op.type)) {
+        throw new Error(`Planner returned disallowed operation type: ${op.type}`);
+      }
+    }
+  }
 
   if (typeof parsed.diffPatch === "string" && parsed.diffPatch.trim()) {
     cleanPatch = sanitizePatch(parsed.diffPatch);
@@ -123,6 +132,7 @@ export async function planNextChange(params: {
   candidateFiles: string[];
   requireComponentTarget?: boolean;
   operationsOnly?: boolean;
+  allowedOperationTypes?: Array<EditOperation["type"]>;
 }): Promise<PlanOutput> {
   if (!process.env.GROQ_API_KEY) {
     throw new Error("GROQ_API_KEY is required for autonomous planner");
@@ -142,6 +152,7 @@ export async function planNextChange(params: {
     - At least one target file must be under src/components/.
     - Do not produce no-op plans.
     ${params.operationsOnly ? "- Operations-only mode is enabled: return non-empty operations and omit diffPatch." : ""}
+    ${params.allowedOperationTypes?.length ? `- Allowed operation types: ${params.allowedOperationTypes.join(", ")} only.` : ""}
     - If using diffPatch, it must be a valid git unified diff patch with file headers (--- a/<path> and +++ b/<path>) and no markdown fences.`;
       const completion = await groq.chat.completions.create({
         model,
@@ -162,6 +173,7 @@ export async function planNextChange(params: {
       const parsed = parsePlan(content, {
         requireComponentTarget: params.requireComponentTarget,
         operationsOnly: params.operationsOnly,
+          allowedOperationTypes: params.allowedOperationTypes,
       });
 
       return {
