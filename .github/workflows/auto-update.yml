@@ -57,6 +57,7 @@ jobs:
           fi
 
       - name: Run autonomous agent
+        id: agent_run
         if: steps.secret_check.outputs.run_agent == 'true'
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
@@ -67,7 +68,33 @@ jobs:
           SAFE_MODEL: ${{ vars.SAFE_MODEL }}
           AGENT_ENABLE_DELAY: "false"
           AGENT_STRICT_MODE: "false"
-        run: npm run agent:run
+        run: |
+          echo "start_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          npm run agent:run
+
+      - name: Fallback maintenance commit (agent produced no commit)
+        if: steps.secret_check.outputs.run_agent == 'true'
+        run: |
+          START_SHA="${{ steps.agent_run.outputs.start_sha }}"
+          CURRENT_SHA="$(git rev-parse HEAD)"
+
+          if [ "$CURRENT_SHA" != "$START_SHA" ]; then
+            echo "Agent produced a commit already. No fallback commit needed."
+            exit 0
+          fi
+
+          mkdir -p .github
+          touch .github/agent-heartbeat.log
+          echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) planner/no-op fallback heartbeat" >> .github/agent-heartbeat.log
+
+          git add .github/agent-heartbeat.log
+          if git diff --cached --quiet; then
+            echo "No fallback changes to commit."
+            exit 0
+          fi
+
+          git commit -m "chore(agent): fallback heartbeat after no-op run"
+          git push origin "${GITHUB_REF_NAME}"
 
       - name: Fallback maintenance commit (no Groq key)
         if: steps.secret_check.outputs.run_agent == 'false'
