@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Newspaper, Radar } from "lucide-react";
+import { Lightbulb, Newspaper, Radar } from "lucide-react";
 import { SectionCard } from "@/components/primitives/SectionCard";
 import { Badge } from "@/components/primitives/Badge";
 import { SkeletonLoader } from "@/components/primitives/SkeletonLoader";
@@ -129,7 +129,10 @@ export function LiveSignalFeed() {
                   <p className="mt-2 text-sm leading-6 text-[var(--m3-on-surface-variant)]">{item.summary}</p>
                     {item.whyItMatters && (
                       <div className="mt-3 rounded-lg bg-[var(--m3-accent)]/10 border border-[var(--m3-accent)]/30 p-3">
-                        <p className="text-xs font-semibold text-[var(--m3-accent)] mb-1">💡 Why this matters:</p>
+                        <p className="mb-1 inline-flex items-center gap-1 text-xs font-semibold text-[var(--m3-accent)]">
+                          <Lightbulb className="size-3" />
+                          Why this matters:
+                        </p>
                         <p className="text-sm text-[var(--m3-on-surface-variant)]">{item.whyItMatters}</p>
                       </div>
                     )}

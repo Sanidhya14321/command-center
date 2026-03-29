@@ -46,16 +46,43 @@ const INTERVIEW_QUESTIONS: Record<string, Record<string, string[]>> = {
   },
 };
 
+const TOPIC_GUIDES: Record<string, string> = {
+  rag: 'retrieval quality, chunking strategy, grounding, vector index behavior, and online relevance feedback',
+  agents: 'tool routing, memory strategy, planning loops, safeguards, observability, and failure recovery',
+  prompting: 'instruction design, schema constraints, prompt testing, and guardrail-aware prompting',
+  evaluation: 'offline benchmarks, golden sets, online metrics, error taxonomy, and regression gating',
+  deployment: 'latency budgets, SLOs, rollout strategy, rollback triggers, and incident handling',
+  finetuning: 'dataset curation, eval-driven tuning, drift monitoring, and post-deployment validation',
+};
+
 async function generateInterviewQuestion(
   topic: string,
-  difficulty: string
+  difficulty: string,
+  previousMessages: Array<{ role: string; content: string }> = []
 ): Promise<string> {
   if (INTERVIEW_QUESTIONS[topic]?.[difficulty]) {
     const questions = INTERVIEW_QUESTIONS[topic][difficulty];
     return questions[Math.floor(Math.random() * questions.length)];
   }
 
-  const prompt = `Generate a ${difficulty} level interview question about ${topic} for AI engineers. Be specific and technical.`;
+  const recentContext = previousMessages
+    .slice(-6)
+    .map((m) => `${m.role}: ${m.content}`)
+    .join('\n');
+
+  const prompt = `You are running a live AI engineering interview.
+Generate exactly one ${difficulty}-level question about ${topic}.
+Topic focus areas: ${TOPIC_GUIDES[topic] ?? 'architecture design, reliability, and evaluation'}.
+
+Rules:
+- Scenario-based, concrete, and production-relevant.
+- Avoid repeating earlier questions.
+- Keep to 1-2 sentences.
+
+Recent interview context:
+${recentContext || 'No previous context'}
+
+Return plain text only.`;
 
   try {
     const completion = await createGroqCompletion({
@@ -76,33 +103,51 @@ async function generateInterviewQuestion(
 async function evaluateAnswer(
   question: string,
   answer: string,
-  difficulty: string
+  difficulty: string,
+  topic: string
 ): Promise<{ feedback: string; score: number }> {
   const prompt = `You are an AI engineering interviewer evaluating a candidate's answer.
 
 Question: ${question}
 Answer: ${answer}
 Difficulty: ${difficulty}
+Topic: ${topic}
 
-Provide:
-1. Brief feedback (1-2 sentences)
-2. Score (0-100)
+Return JSON only using this schema:
+{
+  "score": 0,
+  "strengths": ["...", "..."],
+  "gaps": ["...", "..."],
+  "nextStep": "one concise coaching tip"
+}
 
-Format: FEEDBACK: [feedback] | SCORE: [score]`;
+Scoring rubric:
+- Technical correctness and depth: 35
+- Production constraints and tradeoffs: 25
+- Reliability and observability thinking: 20
+- Communication clarity: 20`;
 
   try {
     const completion = await createGroqCompletion({
-      max_tokens: 300,
+      max_tokens: 450,
+      temperature: 0.2,
+      response_format: { type: 'json_object' },
       messages: [{ role: 'user', content: prompt }],
     });
 
     if (completion.content) {
-      const text = completion.content;
-      const feedbackMatch = text.match(/FEEDBACK:\s*(.+?)\s*\|/);
-      const scoreMatch = text.match(/SCORE:\s*(\d+)/);
+      const parsed = JSON.parse(completion.content) as {
+        score?: number;
+        strengths?: string[];
+        gaps?: string[];
+        nextStep?: string;
+      };
 
-      const feedback = feedbackMatch?.[1] || 'Good answer - think about scalability.';
-      const score = scoreMatch ? parseInt(scoreMatch[1]) : 75;
+      const score = Math.max(0, Math.min(100, parsed.score ?? 75));
+      const strengths = (parsed.strengths ?? []).slice(0, 2).join('; ') || 'You explained the core approach clearly.';
+      const gaps = (parsed.gaps ?? []).slice(0, 2).join('; ') || 'Include more detail about production constraints.';
+      const nextStep = parsed.nextStep || 'Add one metric and one rollback condition to strengthen the answer.';
+      const feedback = `Strengths: ${strengths}\nGaps: ${gaps}\nNext step: ${nextStep}`;
 
       return { feedback, score };
     }
@@ -118,7 +163,7 @@ Format: FEEDBACK: [feedback] | SCORE: [score]`;
 
 export async function POST(request: Request) {
   try {
-    const { topic, difficulty, action, previousQuestion, answer } =
+    const { topic, difficulty, action, previousQuestion, answer, messages } =
       (await request.json()) as InterviewRequest;
 
     if (!hasGroqApiKey()) {
@@ -136,13 +181,13 @@ export async function POST(request: Request) {
     }
 
     if (action === 'start') {
-      const question = await generateInterviewQuestion(topic, difficulty);
+      const question = await generateInterviewQuestion(topic, difficulty, messages ?? []);
       return Response.json({ question });
     }
 
     if (action === 'answer' && previousQuestion && answer) {
-      const { feedback, score } = await evaluateAnswer(previousQuestion, answer, difficulty);
-      const nextQuestion = await generateInterviewQuestion(topic, difficulty);
+      const { feedback, score } = await evaluateAnswer(previousQuestion, answer, difficulty, topic);
+      const nextQuestion = await generateInterviewQuestion(topic, difficulty, messages ?? []);
 
       return Response.json({
         feedback,

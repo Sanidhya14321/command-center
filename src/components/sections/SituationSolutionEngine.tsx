@@ -1,8 +1,21 @@
 'use client';
 
-import { useState } from 'react';
+import { type ComponentType, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Check, AlertCircle, TrendingUp, Clock } from 'lucide-react';
+import {
+  AlertCircle,
+  BarChart3,
+  Brain,
+  Check,
+  Clock3,
+  Cog,
+  LoaderCircle,
+  MessageSquare,
+  Search,
+  Sparkles,
+  Tags,
+  TrendingUp,
+} from 'lucide-react';
 
 interface StackRecommendation {
   name: string;
@@ -18,6 +31,12 @@ interface StackResult {
   thinkingProcess: string;
 }
 
+type UseCaseOption = {
+  id: string;
+  label: string;
+  Icon: ComponentType<{ className?: string }>;
+};
+
 export function SituationSolutionEngine({ sectionId = 'situation-solution' }: { sectionId?: string }) {
   const [useCase, setUseCase] = useState('');
   const [scale, setScale] = useState('');
@@ -25,13 +44,14 @@ export function SituationSolutionEngine({ sectionId = 'situation-solution' }: { 
   const [result, setResult] = useState<StackResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [showThinking, setShowThinking] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const useCases = [
-    { id: 'chatbot', label: 'Conversational Chatbot', icon: '💬' },
-    { id: 'analytics', label: 'Analytics Dashboard', icon: '📊' },
-    { id: 'automation', label: 'Process Automation', icon: '⚙️' },
-    { id: 'search', label: 'AI Search/Retrieval', icon: '🔍' },
-    { id: 'classification', label: 'Content Classification', icon: '🏷️' },
+  const useCases: UseCaseOption[] = [
+    { id: 'chatbot', label: 'Conversational Chatbot', Icon: MessageSquare },
+    { id: 'analytics', label: 'Analytics Dashboard', Icon: BarChart3 },
+    { id: 'automation', label: 'Process Automation', Icon: Cog },
+    { id: 'search', label: 'AI Search/Retrieval', Icon: Search },
+    { id: 'classification', label: 'Content Classification', Icon: Tags },
   ];
 
   const scales = [
@@ -51,6 +71,7 @@ export function SituationSolutionEngine({ sectionId = 'situation-solution' }: { 
     if (!useCase || !scale || !latency) return;
 
     setLoading(true);
+    setError(null);
     try {
       const response = await fetch('/api/stack-recommendation', {
         method: 'POST',
@@ -58,18 +79,33 @@ export function SituationSolutionEngine({ sectionId = 'situation-solution' }: { 
         body: JSON.stringify({ useCase, scale, latency }),
       });
 
-      if (response.ok) {
-        const data = (await response.json()) as StackResult;
-        setResult(data);
+      if (!response.ok) {
+        throw new Error('Recommendation generation failed');
       }
+
+      const data = (await response.json()) as StackResult;
+      setResult(data);
     } catch (error) {
       console.error('Error generating recommendation:', error);
+      setError('Unable to generate recommendation right now. Please retry.');
     } finally {
       setLoading(false);
     }
   };
 
   const isComplete = useCase && scale && latency;
+  const selectedUseCase = useCases.find((item) => item.id === useCase);
+  const selectedScale = scales.find((item) => item.id === scale);
+  const selectedLatency = latencies.find((item) => item.id === latency);
+
+  const thinkingSteps = useMemo(
+    () =>
+      result?.thinkingProcess
+        .split('\n')
+        .map((line) => line.replace(/^[\s\-•\d.)]+/, '').trim())
+        .filter(Boolean) ?? [],
+    [result]
+  );
 
   return (
     <section id={sectionId} className="space-y-6">
@@ -81,8 +117,9 @@ export function SituationSolutionEngine({ sectionId = 'situation-solution' }: { 
         className="rounded-[24px] border border-[var(--m3-outline)]/30 bg-gradient-to-br from-[var(--m3-surface-container-low)] to-[var(--m3-surface-container)] p-6 md:p-8"
       >
         <div className="mb-6 space-y-2">
-          <h2 className="text-2xl font-bold text-[var(--m3-on-surface)]">
-            ⚙️ Situation → Solution Engine
+          <h2 className="flex items-center gap-2 text-2xl font-bold text-[var(--m3-on-surface)]">
+            <Sparkles className="size-6 text-[var(--m3-primary)]" />
+            Situation to Solution Engine
           </h2>
           <p className="text-sm text-[var(--m3-on-surface-variant)]">
             Describe your constraints. Get the best AI stack with tradeoff analysis.
@@ -92,8 +129,9 @@ export function SituationSolutionEngine({ sectionId = 'situation-solution' }: { 
         <div className="space-y-6">
           {/* Use Case Selection */}
           <div className="space-y-3">
-            <label className="block text-sm font-semibold text-[var(--m3-on-surface)]">
-              📋 What do you need to build?
+            <label className="flex items-center gap-2 text-sm font-semibold text-[var(--m3-on-surface)]">
+              <Tags className="size-4" />
+              What do you need to build?
             </label>
             <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
               {useCases.map((uc) => (
@@ -106,7 +144,7 @@ export function SituationSolutionEngine({ sectionId = 'situation-solution' }: { 
                       : 'border border-[var(--m3-outline)]/40 bg-[var(--m3-surface-container-high)] hover:border-[var(--m3-primary)]/50'
                   }`}
                 >
-                  <span className="text-lg">{uc.icon}</span>
+                  <uc.Icon className="size-4" />
                   <span className="font-semibold">{uc.label}</span>
                 </button>
               ))}
@@ -140,7 +178,7 @@ export function SituationSolutionEngine({ sectionId = 'situation-solution' }: { 
           {/* Latency Selection */}
           <div className="space-y-3">
             <label className="block text-sm font-semibold text-[var(--m3-on-surface)]">
-              <Clock className="inline w-4 h-4 mr-2" />
+              <Clock3 className="mr-2 inline h-4 w-4" />
               Latency requirement?
             </label>
             <div className="space-y-2">
@@ -173,13 +211,25 @@ export function SituationSolutionEngine({ sectionId = 'situation-solution' }: { 
           >
             {loading ? (
               <span className="flex items-center justify-center gap-2">
-                <span className="animate-spin">⚙️</span>
+                <LoaderCircle className="size-4 animate-spin" />
                 Analyzing...
               </span>
             ) : (
-              '🚀 Generate Stack Recommendation'
+              'Generate Stack Recommendation'
             )}
           </button>
+
+          {error ? (
+            <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-100">{error}</div>
+          ) : null}
+
+          {isComplete ? (
+            <div className="flex flex-wrap gap-2 text-xs text-[var(--m3-on-surface-variant)]">
+              <span className="rounded-full border border-[var(--m3-outline)] px-2 py-1">Use case: {selectedUseCase?.label}</span>
+              <span className="rounded-full border border-[var(--m3-outline)] px-2 py-1">Scale: {selectedScale?.label}</span>
+              <span className="rounded-full border border-[var(--m3-outline)] px-2 py-1">Latency: {selectedLatency?.label}</span>
+            </div>
+          ) : null}
         </div>
       </motion.div>
 
@@ -199,7 +249,7 @@ export function SituationSolutionEngine({ sectionId = 'situation-solution' }: { 
               className="w-full flex items-center justify-between gap-3 hover:opacity-80 transition"
             >
               <div className="flex items-center gap-2">
-                <span className="text-lg">🧠</span>
+                <Brain className="size-5 text-[var(--m3-primary)]" />
                 <span className="font-semibold text-[var(--m3-on-surface)]">AI Thinking Mode</span>
               </div>
               <span className="text-sm text-[var(--m3-on-surface-variant)]">
@@ -213,9 +263,22 @@ export function SituationSolutionEngine({ sectionId = 'situation-solution' }: { 
                 animate={{ height: 'auto', opacity: 1 }}
                 className="mt-4 p-4 bg-[var(--m3-surface-container)] rounded-lg border border-[var(--m3-outline)]/20"
               >
-                <p className="text-sm text-[var(--m3-on-surface-variant)] leading-relaxed whitespace-pre-wrap">
-                  {result.thinkingProcess}
-                </p>
+                <ol className="space-y-2 text-sm text-[var(--m3-on-surface-variant)]">
+                  {thinkingSteps.length > 0 ? (
+                    thinkingSteps.map((step) => (
+                      <li
+                        key={step}
+                        className="rounded-md border border-[var(--m3-outline)]/30 bg-[var(--m3-surface-container-high)] px-3 py-2"
+                      >
+                        {step}
+                      </li>
+                    ))
+                  ) : (
+                    <li className="rounded-md border border-[var(--m3-outline)]/30 bg-[var(--m3-surface-container-high)] px-3 py-2">
+                      {result.thinkingProcess}
+                    </li>
+                  )}
+                </ol>
               </motion.div>
             )}
           </motion.div>

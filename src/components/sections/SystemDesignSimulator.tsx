@@ -3,12 +3,15 @@
 import { useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
+  ArrowRight,
   Bot,
   Boxes,
   Database,
   GitBranch,
+  LayoutTemplate,
   Link2,
   Plus,
+  RefreshCcw,
   Search,
   Trash2,
   Unlink2,
@@ -34,6 +37,13 @@ type Connection = {
   to: string;
 };
 
+type ArchitectureTemplate = {
+  id: string;
+  label: string;
+  nodes: Array<{ type: ComponentType; label: string; x: number; y: number }>;
+  edges: Array<{ from: string; to: string }>;
+};
+
 type DragState = {
   id: string;
   offsetX: number;
@@ -53,6 +63,43 @@ const NODE_HEIGHT = 72;
 const CANVAS_W = 1300;
 const CANVAS_H = 760;
 
+const ARCH_TEMPLATES: ArchitectureTemplate[] = [
+  {
+    id: 'rag-blueprint',
+    label: 'RAG Blueprint',
+    nodes: [
+      { type: 'api', label: 'API Gateway', x: 70, y: 220 },
+      { type: 'agent', label: 'Orchestrator Agent', x: 320, y: 220 },
+      { type: 'vectordb', label: 'Vector Store', x: 570, y: 140 },
+      { type: 'llm', label: 'Inference LLM', x: 570, y: 300 },
+      { type: 'pipeline', label: 'Ingestion Pipeline', x: 850, y: 140 },
+    ],
+    edges: [
+      { from: 'API Gateway', to: 'Orchestrator Agent' },
+      { from: 'Orchestrator Agent', to: 'Vector Store' },
+      { from: 'Orchestrator Agent', to: 'Inference LLM' },
+      { from: 'Ingestion Pipeline', to: 'Vector Store' },
+    ],
+  },
+  {
+    id: 'agent-platform',
+    label: 'Agent Platform',
+    nodes: [
+      { type: 'api', label: 'Task API', x: 90, y: 210 },
+      { type: 'agent', label: 'Planner Agent', x: 330, y: 120 },
+      { type: 'agent', label: 'Executor Agent', x: 330, y: 300 },
+      { type: 'llm', label: 'Reasoning LLM', x: 580, y: 120 },
+      { type: 'pipeline', label: 'Telemetry Stream', x: 580, y: 300 },
+    ],
+    edges: [
+      { from: 'Task API', to: 'Planner Agent' },
+      { from: 'Planner Agent', to: 'Reasoning LLM' },
+      { from: 'Planner Agent', to: 'Executor Agent' },
+      { from: 'Executor Agent', to: 'Telemetry Stream' },
+    ],
+  },
+];
+
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
@@ -62,6 +109,7 @@ export function SystemDesignSimulator({ sectionId = 'system-simulator' }: { sect
   const [connections, setConnections] = useState<Connection[]>([]);
   const [scale, setScale] = useState(1);
   const [selectedFrom, setSelectedFrom] = useState<string | null>(null);
+  const [selectedConnection, setSelectedConnection] = useState<string | null>(null);
   const [dragging, setDragging] = useState<DragState>(null);
   const canvasRef = useRef<HTMLDivElement | null>(null);
 
@@ -90,6 +138,43 @@ export function SystemDesignSimulator({ sectionId = 'system-simulator' }: { sect
     if (selectedFrom === id) {
       setSelectedFrom(null);
     }
+    if (selectedConnection?.startsWith(`${id}-`) || selectedConnection?.endsWith(`-${id}`)) {
+      setSelectedConnection(null);
+    }
+  };
+
+  const applyTemplate = (templateId: string) => {
+    const template = ARCH_TEMPLATES.find((item) => item.id === templateId);
+    if (!template) return;
+
+    const normalizedNodes: ArchComponent[] = template.nodes.map((node, index) => ({
+      id: `tpl-${template.id}-${index + 1}`,
+      type: node.type,
+      label: node.label,
+      x: node.x,
+      y: node.y,
+    }));
+
+    const resolvedEdges: Connection[] = template.edges
+      .map((edge) => {
+        const from = normalizedNodes.find((node) => node.label === edge.from)?.id;
+        const to = normalizedNodes.find((node) => node.label === edge.to)?.id;
+        if (!from || !to) return null;
+        return { from, to };
+      })
+      .filter((edge): edge is Connection => Boolean(edge));
+
+    setComponents(normalizedNodes);
+    setConnections(resolvedEdges);
+    setSelectedFrom(null);
+    setSelectedConnection(null);
+  };
+
+  const removeSelectedConnection = () => {
+    if (!selectedConnection) return;
+    const [from, to] = selectedConnection.split('::');
+    setConnections((prev) => prev.filter((conn) => !(conn.from === from && conn.to === to)));
+    setSelectedConnection(null);
   };
 
   const connectComponents = (fromId: string, toId: string) => {
@@ -194,6 +279,18 @@ export function SystemDesignSimulator({ sectionId = 'system-simulator' }: { sect
     return `Current flow path: ${ordered}.`;
   }, [components]);
 
+  const architectureHealth = useMemo(() => {
+    if (!components.length) return 'No architecture nodes yet.';
+    const connectedCount = components.filter((comp) =>
+      connections.some((conn) => conn.from === comp.id || conn.to === comp.id),
+    ).length;
+    const ratio = Math.round((connectedCount / components.length) * 100);
+
+    if (ratio < 50) return `Low connectivity (${ratio}%). Add integration paths between core services.`;
+    if (ratio < 80) return `Moderate connectivity (${ratio}%). Review isolated components before deployment.`;
+    return `High connectivity (${ratio}%). Topology is well-linked for a draft design.`;
+  }, [components, connections]);
+
   return (
     <SectionCard
       id={sectionId}
@@ -203,9 +300,23 @@ export function SystemDesignSimulator({ sectionId = 'system-simulator' }: { sect
     >
       <div className="space-y-4">
         <div className="surface-muted p-3">
-          <p className="mb-2 font-mono text-xs uppercase tracking-[0.08em] text-[var(--m3-on-surface-variant)]">
-            Component Palette
-          </p>
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <p className="font-mono text-xs uppercase tracking-[0.08em] text-[var(--m3-on-surface-variant)]">Component Palette</p>
+            <div className="flex flex-wrap items-center gap-2">
+              {ARCH_TEMPLATES.map((template) => (
+                <button
+                  key={template.id}
+                  type="button"
+                  onClick={() => applyTemplate(template.id)}
+                  className="inline-flex items-center gap-2 rounded-md border border-[var(--m3-outline)] bg-[var(--m3-surface-container)] px-2 py-1 text-xs text-[var(--m3-on-surface-variant)]"
+                >
+                  <LayoutTemplate className="size-3" />
+                  {template.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="flex flex-wrap gap-2">
             {COMPONENT_TYPES.map((comp) => (
               <button
@@ -225,10 +336,11 @@ export function SystemDesignSimulator({ sectionId = 'system-simulator' }: { sect
                 setComponents([]);
                 setConnections([]);
                 setSelectedFrom(null);
+                setSelectedConnection(null);
               }}
               className="ml-auto inline-flex items-center gap-2 rounded-md border border-[var(--m3-outline)] bg-[var(--m3-surface-container)] px-3 py-2 text-sm text-[var(--m3-on-surface-variant)]"
             >
-              <Trash2 className="size-4" />
+              <RefreshCcw className="size-4" />
               Clear Canvas
             </button>
           </div>
@@ -237,9 +349,18 @@ export function SystemDesignSimulator({ sectionId = 'system-simulator' }: { sect
         <div className="surface-muted overflow-hidden">
           <div className="flex items-center justify-between border-b border-[var(--m3-outline)] px-3 py-2">
             <div className="text-sm text-[var(--m3-on-surface-variant)]">
-              {components.length} nodes · {connections.length} connections
+              {components.length} nodes | {connections.length} connections
             </div>
             <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={removeSelectedConnection}
+                disabled={!selectedConnection}
+                className="rounded-md border border-[var(--m3-outline)] px-2 py-1 text-[var(--m3-on-surface-variant)] disabled:opacity-50"
+                title="Remove selected connection"
+              >
+                <Unlink2 className="size-4" />
+              </button>
               <button
                 type="button"
                 onClick={() => setScale((prev) => Math.max(0.6, Number((prev - 0.1).toFixed(2))))}
@@ -265,24 +386,39 @@ export function SystemDesignSimulator({ sectionId = 'system-simulator' }: { sect
             onPointerUp={endDrag}
             onPointerCancel={endDrag}
           >
-            <div className="relative" style={{ width: CANVAS_W * scale, height: CANVAS_H * scale }}>
-              <svg className="absolute left-0 top-0 h-full w-full pointer-events-none">
+            <div
+              className="relative"
+              style={{
+                width: CANVAS_W * scale,
+                height: CANVAS_H * scale,
+                backgroundImage:
+                  'linear-gradient(to right, color-mix(in oklab, var(--m3-outline) 18%, transparent) 1px, transparent 1px), linear-gradient(to bottom, color-mix(in oklab, var(--m3-outline) 18%, transparent) 1px, transparent 1px)',
+                backgroundSize: `${32 * scale}px ${32 * scale}px`,
+              }}
+            >
+              <svg className="absolute left-0 top-0 h-full w-full">
                 {connections.map((conn) => {
                   const fromNode = components.find((c) => c.id === conn.from);
                   const toNode = components.find((c) => c.id === conn.to);
                   if (!fromNode || !toNode) return null;
 
+                  const edgeKey = `${conn.from}::${conn.to}`;
+                  const isSelected = selectedConnection === edgeKey;
+
                   return (
-                    <line
-                      key={`${conn.from}-${conn.to}`}
-                      x1={(fromNode.x + NODE_WIDTH) * scale}
-                      y1={(fromNode.y + NODE_HEIGHT / 2) * scale}
-                      x2={toNode.x * scale}
-                      y2={(toNode.y + NODE_HEIGHT / 2) * scale}
-                      stroke="var(--m3-primary)"
-                      strokeWidth="1.5"
-                      strokeDasharray="4 3"
-                    />
+                    <g key={edgeKey}>
+                      <line
+                        x1={(fromNode.x + NODE_WIDTH) * scale}
+                        y1={(fromNode.y + NODE_HEIGHT / 2) * scale}
+                        x2={toNode.x * scale}
+                        y2={(toNode.y + NODE_HEIGHT / 2) * scale}
+                        stroke={isSelected ? 'var(--m3-accent)' : 'var(--m3-primary)'}
+                        strokeWidth={isSelected ? '2.5' : '1.5'}
+                        strokeDasharray="4 3"
+                        className="pointer-events-auto cursor-pointer"
+                        onClick={() => setSelectedConnection(edgeKey)}
+                      />
+                    </g>
                   );
                 })}
               </svg>
@@ -311,7 +447,7 @@ export function SystemDesignSimulator({ sectionId = 'system-simulator' }: { sect
                           {typeInfo?.icon}
                           <span className="truncate">{node.label}</span>
                         </div>
-                        <p className="mt-1 text-xs text-[var(--m3-on-surface-variant)]">Drag to move · click to connect</p>
+                        <p className="mt-1 text-xs text-[var(--m3-on-surface-variant)]">Drag to move | click to connect</p>
                       </div>
                       <button
                         type="button"
@@ -349,6 +485,10 @@ export function SystemDesignSimulator({ sectionId = 'system-simulator' }: { sect
               <h3 className="text-sm font-semibold text-[var(--m3-on-surface)]">Flow Explanation</h3>
             </div>
             <p className="text-sm leading-6 text-[var(--m3-on-surface-variant)]">{flowSummary}</p>
+            <p className="mt-3 inline-flex items-center gap-2 rounded-md border border-[var(--m3-outline)] px-3 py-2 text-xs text-[var(--m3-on-surface-variant)]">
+              <ArrowRight className="size-3" />
+              {architectureHealth}
+            </p>
           </div>
 
           <div className="surface-muted p-4">

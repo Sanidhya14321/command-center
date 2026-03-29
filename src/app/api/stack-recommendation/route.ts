@@ -48,12 +48,12 @@ const CURATED_RECOMMENDATIONS: Record<string, Record<string, Record<string, Stac
           },
         ],
         thinkingProcess: `For a real-time chatbot at startup scale:
-• Real-time means <100ms latency - requires fast inference
-• Small scale (<1K) means cost optimization is key
-• Groq excels at latency (< 50ms for inference)
-• FastAPI gives you control without operational overhead
-• SQLite fits <1K users; Redis adds response caching
-• This stack fits on a single t3.micro EC2 instance (~$10/month)`,
+      - Real-time means <100ms latency and requires fast inference
+      - Small scale (<1K) means cost optimization is key
+      - Groq excels at low-latency inference
+      - FastAPI gives control without heavy operational overhead
+      - SQLite fits <1K users; Redis adds response caching
+      - This stack can fit on a single low-cost compute instance`,
       },
     },
   },
@@ -64,34 +64,62 @@ async function generateRecommendationWithGroq(
   scale: string,
   latency: string
 ): Promise<StackResult> {
-  const prompt = `You are an expert AI infrastructure architect. Provide a stack recommendation.
+  const prompt = `You are a principal AI infrastructure architect.
+Your job is to recommend a practical, production-ready stack under explicit constraints.
+
+Rules:
+- Prefer concrete technologies over generic terms.
+- Mention tradeoffs honestly (latency, reliability, observability, security, team skill).
+- Keep cost realistic and concise.
+- Do not use markdown.
+- Return valid JSON only.
+- thinkingProcess must be 4-7 concise steps.
 
 Use Case: ${useCase}
 Scale: ${scale}
 Latency: ${latency}
 
-Return ONLY valid JSON (no markdown, no extra text) with this structure:
+Return JSON with this exact schema:
 {
   "recommended": {
     "name": "Stack name",
     "components": ["component1", "component2"],
-    "tradeoffs": "description",
-    "cost": "monthly estimate",
-    "difficulty": "Easy/Medium/Hard"
+    "tradeoffs": "2-3 sentence tradeoff explanation",
+    "cost": "monthly estimate range",
+    "difficulty": "Easy" | "Medium" | "Hard"
   },
   "alternatives": [
     {"name": "...", "components": [...], "tradeoffs": "...", "cost": "...", "difficulty": "..."}
   ],
-  "thinkingProcess": "explain your reasoning..."
+  "thinkingProcess": "Step 1 ...\\nStep 2 ...\\nStep 3 ..."
 }`;
 
   try {
     const completion = await createGroqCompletion({
+      temperature: 0.2,
       max_tokens: 1024,
+      response_format: { type: 'json_object' },
       messages: [{ role: 'user', content: prompt }],
     });
 
-    return JSON.parse(completion.content) as StackResult;
+    const normalized = completion.content.trim().replace(/^```json\s*/i, '').replace(/```$/i, '');
+    const parsed = JSON.parse(normalized) as Partial<StackResult>;
+
+    if (!parsed.recommended || !parsed.recommended.name || !Array.isArray(parsed.recommended.components)) {
+      throw new Error('Incomplete stack recommendation payload');
+    }
+
+    return {
+      recommended: {
+        name: parsed.recommended.name,
+        components: parsed.recommended.components,
+        tradeoffs: parsed.recommended.tradeoffs ?? 'Tradeoff details unavailable.',
+        cost: parsed.recommended.cost ?? 'Cost not specified',
+        difficulty: parsed.recommended.difficulty ?? 'Medium',
+      },
+      alternatives: Array.isArray(parsed.alternatives) ? parsed.alternatives : [],
+      thinkingProcess: parsed.thinkingProcess ?? 'Reasoning unavailable from model response.',
+    };
   } catch {
     throw new Error('Failed to generate recommendation with Groq');
   }

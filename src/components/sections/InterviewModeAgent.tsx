@@ -1,8 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, RotateCcw, Lightbulb } from 'lucide-react';
+import {
+  Bot,
+  Brain,
+  Gauge,
+  LoaderCircle,
+  MessageSquare,
+  RotateCcw,
+  Send,
+  Sparkles,
+  Target,
+} from 'lucide-react';
 
 interface InterviewMessage {
   role: 'interviewer' | 'candidate';
@@ -26,13 +36,15 @@ interface InterviewAnswerResponse {
 }
 
 const INTERVIEW_TOPICS = [
-  { value: 'rag', label: '🔍 RAG Systems', difficulty: ['mid', 'senior'] },
-  { value: 'agents', label: '🤖 AI Agents', difficulty: ['mid', 'senior'] },
-  { value: 'prompting', label: '💬 Advanced Prompting', difficulty: ['junior', 'mid'] },
-  { value: 'evaluation', label: '📊 LLM Evaluation', difficulty: ['mid', 'senior'] },
-  { value: 'deployment', label: '🚀 Production Systems', difficulty: ['senior'] },
-  { value: 'finetuning', label: '🎯 Fine-tuning', difficulty: ['mid', 'senior'] },
+  { value: 'rag', label: 'RAG Systems', difficulty: ['mid', 'senior'], icon: Target },
+  { value: 'agents', label: 'AI Agents', difficulty: ['mid', 'senior'], icon: Bot },
+  { value: 'prompting', label: 'Advanced Prompting', difficulty: ['junior', 'mid'], icon: MessageSquare },
+  { value: 'evaluation', label: 'LLM Evaluation', difficulty: ['mid', 'senior'], icon: Gauge },
+  { value: 'deployment', label: 'Production Systems', difficulty: ['senior'], icon: Sparkles },
+  { value: 'finetuning', label: 'Fine-tuning', difficulty: ['mid', 'senior'], icon: Brain },
 ];
+
+const MAX_QUESTIONS = 5;
 
 export function InterviewModeAgent({ sectionId = 'interview-mode' }: { sectionId?: string }) {
   const [session, setSession] = useState<InterviewSession | null>(null);
@@ -40,6 +52,18 @@ export function InterviewModeAgent({ sectionId = 'interview-mode' }: { sectionId
   const [selectedDifficulty, setSelectedDifficulty] = useState<'junior' | 'mid' | 'senior'>('mid');
   const [inputAnswer, setInputAnswer] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const messagesRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (messagesRef.current) {
+      messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
+    }
+  }, [session?.messages.length, isLoading]);
+
+  const progressPercent = useMemo(() => {
+    if (!session) return 0;
+    return Math.min(100, Math.round((session.questionCount / MAX_QUESTIONS) * 100));
+  }, [session]);
 
   const startInterview = async () => {
     if (!selectedTopic) return;
@@ -146,8 +170,9 @@ export function InterviewModeAgent({ sectionId = 'interview-mode' }: { sectionId
           className="rounded-[24px] border border-[var(--m3-outline)]/30 bg-gradient-to-br from-[var(--m3-surface-container-low)] to-[var(--m3-surface-container)] p-6 md:p-8"
         >
           <div className="mb-6 space-y-2">
-            <h2 className="text-2xl font-bold text-[var(--m3-on-surface)]">
-              🎤 Interview Mode Agent
+            <h2 className="flex items-center gap-2 text-2xl font-bold text-[var(--m3-on-surface)]">
+              <Bot className="size-6 text-[var(--m3-primary)]" />
+              Interview Mode Agent
             </h2>
             <p className="text-sm text-[var(--m3-on-surface-variant)]">
               Get real-time feedback from an AI interviewer. Practice for technical interviews.
@@ -157,8 +182,9 @@ export function InterviewModeAgent({ sectionId = 'interview-mode' }: { sectionId
           <div className="space-y-6">
             {/* Topic Selection */}
             <div className="space-y-3">
-              <label className="block text-sm font-semibold text-[var(--m3-on-surface)]">
-                📚 Select Interview Topic
+              <label className="flex items-center gap-2 text-sm font-semibold text-[var(--m3-on-surface)]">
+                <Target className="size-4" />
+                Select Interview Topic
               </label>
               <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
                 {INTERVIEW_TOPICS.map((topic) => (
@@ -174,6 +200,7 @@ export function InterviewModeAgent({ sectionId = 'interview-mode' }: { sectionId
                           : 'border border-[var(--m3-outline)]/40 bg-[var(--m3-surface-container-high)] hover:border-[var(--m3-primary)]/50'
                     }`}
                   >
+                    <topic.icon className="size-4" />
                     {topic.label}
                   </button>
                 ))}
@@ -182,8 +209,9 @@ export function InterviewModeAgent({ sectionId = 'interview-mode' }: { sectionId
 
             {/* Difficulty Selection */}
             <div className="space-y-3">
-              <label className="block text-sm font-semibold text-[var(--m3-on-surface)]">
-                ⚡ Difficulty Level
+              <label className="flex items-center gap-2 text-sm font-semibold text-[var(--m3-on-surface)]">
+                <Gauge className="size-4" />
+                Difficulty Level
               </label>
               <div className="flex gap-2">
                 {['junior', 'mid', 'senior'].map((level) => (
@@ -217,11 +245,11 @@ export function InterviewModeAgent({ sectionId = 'interview-mode' }: { sectionId
             >
               {isLoading ? (
                 <span className="flex items-center justify-center gap-2">
-                  <span className="animate-spin">⏳</span>
+                  <LoaderCircle className="size-4 animate-spin" />
                   Starting interview...
                 </span>
               ) : (
-                '🎬 Start Interview'
+                'Start Interview'
               )}
             </button>
           </div>
@@ -240,12 +268,19 @@ export function InterviewModeAgent({ sectionId = 'interview-mode' }: { sectionId
       >
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-2xl font-bold text-[var(--m3-on-surface)]">
-              🎤 Interview Session
+            <h2 className="flex items-center gap-2 text-2xl font-bold text-[var(--m3-on-surface)]">
+              <Bot className="size-6 text-[var(--m3-primary)]" />
+              Interview Session
             </h2>
             <p className="text-sm text-[var(--m3-on-surface-variant)]">
-              Question {session.questionCount} • Score: {session.score}/100
+              Question {session.questionCount} of {MAX_QUESTIONS} | Score: {session.score}/100
             </p>
+            <div className="mt-2 h-2 w-52 overflow-hidden rounded-full bg-[var(--m3-surface-container-high)]">
+              <div
+                className="h-full rounded-full bg-[var(--m3-primary)] transition-all"
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
           </div>
           <button
             onClick={() => setSession(null)}
@@ -257,7 +292,10 @@ export function InterviewModeAgent({ sectionId = 'interview-mode' }: { sectionId
         </div>
 
         {/* Chat Messages */}
-        <div className="space-y-4 mb-6 max-h-96 overflow-y-auto bg-[var(--m3-surface-container-lowest)] rounded-lg p-4">
+        <div
+          ref={messagesRef}
+          className="space-y-4 mb-6 max-h-96 overflow-y-auto bg-[var(--m3-surface-container-lowest)] rounded-lg p-4"
+        >
           <AnimatePresence>
             {session.messages.map((msg, i) => (
               <motion.div
@@ -276,40 +314,56 @@ export function InterviewModeAgent({ sectionId = 'interview-mode' }: { sectionId
                   <p className="text-sm">{msg.content}</p>
                   {msg.feedback && (
                     <div className="mt-2 pt-2 border-t border-current/20">
-                      <p className="text-xs opacity-80">
-                        <Lightbulb className="inline w-3 h-3 mr-1" />
-                        {msg.feedback}
-                      </p>
+                      <p className="text-xs whitespace-pre-line opacity-90">{msg.feedback}</p>
                     </div>
                   )}
                 </div>
               </motion.div>
             ))}
+
+            {isLoading ? (
+              <motion.div
+                key="typing"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="flex justify-start"
+              >
+                <div className="inline-flex items-center gap-2 rounded-lg bg-[var(--m3-surface-container-high)] px-3 py-2 text-xs text-[var(--m3-on-surface-variant)]">
+                  <LoaderCircle className="size-3 animate-spin" />
+                  Interviewer is analyzing your answer...
+                </div>
+              </motion.div>
+            ) : null}
           </AnimatePresence>
         </div>
 
         {/* Input Area */}
-        {session.currentQuestion && session.questionCount < 5 && (
-          <div className="flex gap-2">
-            <input
-              type="text"
+        {session.currentQuestion && session.questionCount < MAX_QUESTIONS && (
+          <div className="space-y-2">
+            <textarea
               value={inputAnswer}
               onChange={(e) => setInputAnswer(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && submitAnswer()}
-              placeholder="Type your answer..."
-              className="flex-1 rounded-lg bg-[var(--m3-surface-container-high)] px-4 py-2 text-sm border border-[var(--m3-outline)]/40 focus:outline-none focus:border-[var(--m3-primary)]"
+              placeholder="Type your answer with architecture choice, tradeoffs, and production validation..."
+              rows={4}
+              className="w-full rounded-lg bg-[var(--m3-surface-container-high)] px-4 py-3 text-sm border border-[var(--m3-outline)]/40 focus:outline-none focus:border-[var(--m3-primary)]"
             />
-            <button
-              onClick={submitAnswer}
-              disabled={!inputAnswer.trim() || isLoading}
-              className="px-4 py-2 rounded-lg bg-[var(--m3-accent)] text-[var(--m3-on-primary)] hover:shadow-lg disabled:opacity-50"
-            >
-              <Send className="w-4 h-4" />
-            </button>
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs text-[var(--m3-on-surface-variant)]">
+                Tip: include one metric and one fallback strategy in each answer.
+              </p>
+              <button
+                onClick={submitAnswer}
+                disabled={!inputAnswer.trim() || isLoading}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--m3-accent)] text-[var(--m3-on-primary)] hover:shadow-lg disabled:opacity-50"
+              >
+                <Send className="w-4 h-4" />
+                Submit Answer
+              </button>
+            </div>
           </div>
         )}
 
-        {session.questionCount >= 5 && (
+        {session.questionCount >= MAX_QUESTIONS && (
           <div className="text-center p-4 bg-[var(--m3-surface-container-high)] rounded-lg">
             <p className="font-bold text-[var(--m3-on-surface)]">Interview Complete!</p>
             <p className="text-sm text-[var(--m3-on-surface-variant)]">
