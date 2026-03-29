@@ -1,26 +1,140 @@
+/*
+  Design Style: Material 3 Command Center
+  Theme: Dark M3 Tonal
+  Fonts: Display + Body -> Inter | Mono -> JetBrains Mono
+*/
+
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --m3-surface: #1c1b1f;
+  --m3-surface-dim: #141218;
+  --m3-surface-bright: #36343b;
+  --m3-surface-container-lowest: #0f0d13;
+  --m3-surface-container-low: #1f1d23;
+  --m3-surface-container: #242129;
+  --m3-surface-container-high: #2f2b34;
+  --m3-surface-container-highest: #3a3640;
+  --m3-primary: #d0bcff;
+  --m3-on-primary: #381e72;
+  --m3-secondary: #ccc2dc;
+  --m3-on-secondary: #332d41;
+  --m3-accent: #381e72;
+  --m3-on-surface: #e6e0e9;
+  --m3-on-surface-variant: #cac4d0;
+  --m3-outline: #938f99;
+  --m3-outline-variant: #4a4458;
+  --m3-error: #f2b8b5;
+
+  --radius-panel: 24px;
+  --shadow-elevation-1: 0 1px 2px rgba(0, 0, 0, 0.35), 0 2px 6px rgba(0, 0, 0, 0.3);
+  --shadow-elevation-2: 0 4px 14px rgba(0, 0, 0, 0.38), 0 8px 28px rgba(0, 0, 0, 0.25);
+  --shadow-elevation-3: 0 16px 38px rgba(0, 0, 0, 0.4), 0 26px 52px rgba(0, 0, 0, 0.28);
+
+  --font-display: var(--font-inter);
+  --font-body: var(--font-inter);
+  --font-mono: var(--font-jetbrains-mono);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: var(--m3-surface);
+  --color-foreground: var(--m3-on-surface);
+  --font-sans: var(--font-body);
+  --font-mono: var(--font-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  min-height: 100vh;
+  margin: 0;
+  font-family: var(--font-body), sans-serif;
+  color: var(--m3-on-surface);
+  background:
+    radial-gradient(circle at 12% 14%, rgba(208, 188, 255, 0.14), transparent 36%),
+    radial-gradient(circle at 82% 8%, rgba(56, 30, 114, 0.22), transparent 42%),
+    radial-gradient(circle at 50% 100%, rgba(204, 194, 220, 0.08), transparent 40%),
+    var(--m3-surface);
+  background-attachment: fixed;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-display), sans-serif;
+  letter-spacing: -0.02em;
+}
+
+code,
+pre,
+.font-mono {
+  font-family: var(--font-mono), monospace;
+}
+
+::selection {
+  background: rgba(208, 188, 255, 0.35);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--m3-surface-container-lowest);
+}
+
+::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: var(--m3-outline-variant);
+}
+
+.m3-card {
+  border-radius: var(--radius-panel);
+  background: linear-gradient(155deg, rgba(58, 54, 64, 0.9), rgba(31, 29, 35, 0.98));
+  box-shadow: var(--shadow-elevation-2);
+  backdrop-filter: blur(8px);
+}
+
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(90deg, #2c2932 25%, #383440 50%, #2c2932 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.25s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.grid-overlay {
+  background-image:
+    linear-gradient(rgba(208, 188, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(208, 188, 255, 0.06) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
