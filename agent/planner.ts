@@ -125,6 +125,7 @@ export async function repairMalformedPatch(params: {
     "- Must include --- a/<path> and +++ b/<path>",
     "- Must include proper @@ hunks",
     "- If the target file does not exist, convert patch to a file-creation patch using --- /dev/null and +++ b/<path>",
+    "- If the patch does not apply due to context drift, regenerate hunks against current file content while preserving intent",
     "- Ensure parent directories can be created by git apply",
     "- Preserve intended changes",
     "Apply error:",

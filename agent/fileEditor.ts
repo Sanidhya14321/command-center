@@ -16,6 +16,12 @@ async function runGitApply(patchPath: string): Promise<void> {
   });
 }
 
+async function runGitApply3Way(patchPath: string): Promise<void> {
+  await execFileAsync("git", ["apply", "--3way", "--whitespace=nowarn", patchPath], {
+    maxBuffer: 1024 * 1024 * 4,
+  });
+}
+
 function parseMissingPathFromApplyError(message: string): string | null {
   const match = message.match(/error:\s+([^\n:]+):\s+No such file or directory/i);
   return match?.[1]?.trim() || null;
@@ -50,6 +56,18 @@ export async function applyDiffPatch(diffPatch: string): Promise<void> {
     await runGitApply(patchPath);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
+    const lower = message.toLowerCase();
+
+    if (lower.includes("patch does not apply") || lower.includes("patch failed:")) {
+      try {
+        await runGitApply3Way(patchPath);
+        return;
+      } catch (threeWayError) {
+        const threeWayMessage = threeWayError instanceof Error ? threeWayError.message : String(threeWayError);
+        throw new Error(`Planner produced non-applicable patch: ${threeWayMessage}`);
+      }
+    }
+
     if (message.toLowerCase().includes("corrupt patch")) {
       throw new Error(`Planner produced malformed patch: ${message}`);
     }
