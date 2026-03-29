@@ -62,6 +62,14 @@ body {
     radial-gradient(circle at 50% 100%, rgba(204, 194, 220, 0.08), transparent 40%),
     var(--m3-surface);
   background-attachment: fixed;
+  animation: surfaceShift 26s ease-in-out infinite alternate;
+}
+
+a,
+button,
+input,
+textarea {
+  transition: all 180ms ease;
 }
 
 h1,
@@ -126,6 +134,15 @@ pre,
     linear-gradient(rgba(208, 188, 255, 0.06) 1px, transparent 1px),
     linear-gradient(90deg, rgba(208, 188, 255, 0.06) 1px, transparent 1px);
   background-size: 40px 40px;
+}
+
+@keyframes surfaceShift {
+  0% {
+    background-position: 0 0, 0 0, 0 0;
+  }
+  100% {
+    background-position: 20px 10px, -30px -15px, 15px -25px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -7,16 +7,16 @@ export type NavItem = {
 
 export const primaryNav: NavItem[] = [
   {
-    id: "fde-playbook",
-    label: "FDE Playbook",
-    href: "#fde-playbook",
-    description: "Field-ready deployment strategy and consulting execution",
+    id: "hero",
+    label: "Overview",
+    href: "#hero",
+    description: "AI engineering command center and learning mission",
   },
   {
-    id: "ai-mastery",
-    label: "AI Engineering Mastery",
-    href: "#ai-mastery",
-    description: "Production-grade LLM systems and architecture playbooks",
+    id: "ai-curriculum",
+    label: "AI Curriculum",
+    href: "#ai-curriculum",
+    description: "Complete chapter progression from fundamentals to deployment",
   },
   {
     id: "signal-intelligence",
@@ -25,16 +25,10 @@ export const primaryNav: NavItem[] = [
     description: "Live AI engineering intelligence with relevance scoring",
   },
   {
-    id: "interview-blackbook",
-    label: "Interview Blackbook",
-    href: "#interview-blackbook",
-    description: "Practical question banks and response frameworks",
-  },
-  {
-    id: "artifact-templates",
-    label: "Artifact Templates",
-    href: "#artifact-templates",
-    description: "Site survey, WES, SOW, architecture and status assets",
+    id: "deployment-blueprint",
+    label: "Deployment",
+    href: "#deployment-blueprint",
+    description: "Production readiness, observability, and release operations",
   },
   {
     id: "project-repository",

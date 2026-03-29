@@ -91,8 +91,8 @@ export function SidebarNav({ compact = false }: SidebarNavProps) {
     <aside className="hidden lg:block lg:sticky lg:top-6 lg:h-[calc(100dvh-3rem)]">
       <nav className="m3-card h-full overflow-y-auto p-4" aria-label="Table of contents">
         <div className="mb-4 border-b border-[var(--m3-outline)]/60 pb-4">
-          <p className="font-mono text-xs uppercase tracking-[0.12em] text-[var(--m3-on-surface-variant)]">Command Index</p>
-          <h2 className="mt-2 font-display text-xl text-[var(--m3-on-surface)]">Resource Hub</h2>
+          <p className="font-mono text-xs uppercase tracking-[0.12em] text-[var(--m3-on-surface-variant)]">Learning Navigator</p>
+          <h2 className="mt-2 font-display text-xl text-[var(--m3-on-surface)]">AI Engineer OS</h2>
         </div>
         <ul className="space-y-2">
           {primaryNav.map((item) => (
@@ -116,7 +116,7 @@ export function SidebarNav({ compact = false }: SidebarNavProps) {
           href="/repository"
           className="mt-6 block rounded-2xl border border-[var(--m3-outline)] bg-[var(--m3-surface-container)] px-3 py-2 text-sm text-[var(--m3-secondary)] hover:bg-[var(--m3-surface-container-high)]"
         >
-          Open full project repository page
+          Open full project repository
         </Link>
       </nav>
     </aside>

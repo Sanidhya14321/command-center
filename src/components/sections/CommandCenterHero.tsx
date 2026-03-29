@@ -7,30 +7,42 @@ import { Badge } from "@/components/primitives/Badge";
 
 export function CommandCenterHero() {
   const { scrollY } = useScroll();
-  const yOffset = useTransform(scrollY, [0, 600], [0, -45]);
+  const yOffset = useTransform(scrollY, [0, 700], [0, -60]);
 
   return (
-    <section className="relative overflow-hidden rounded-[24px] border border-[var(--m3-outline)]/50 bg-[var(--m3-surface-container-low)] p-6 shadow-[var(--shadow-elevation-3)] md:p-8">
+    <section id="hero" className="relative min-h-[60vh] overflow-hidden rounded-[24px] border border-[var(--m3-outline)]/50 bg-[var(--m3-surface-container-low)] p-6 shadow-[var(--shadow-elevation-3)] md:p-8">
       <motion.div style={{ y: yOffset }} className="pointer-events-none absolute inset-0 grid-overlay opacity-60" />
       <div className="pointer-events-none absolute -right-24 -top-24 size-72 rounded-full bg-[var(--m3-primary)]/20 blur-3xl" />
       <div className="pointer-events-none absolute -left-20 bottom-0 size-64 rounded-full bg-[var(--m3-accent)]/35 blur-3xl" />
+      <div className="pointer-events-none absolute bottom-8 right-8 h-32 w-32 rounded-full border border-[var(--m3-primary)]/35" />
 
-      <div className="relative z-10">
-        <Badge>Forward Deployment Operating System</Badge>
-        <h1 className="mt-4 max-w-3xl font-display text-3xl leading-tight text-[var(--m3-on-surface)] md:text-5xl">
-          Interactive technical command center for FDE, AI Engineering, and Data Science execution.
+      <motion.div
+        initial={{ opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.32 }}
+        className="relative z-10"
+      >
+        <Badge>AI Engineering Operating System</Badge>
+        <h1 className="mt-4 max-w-4xl font-display text-3xl leading-tight text-[var(--m3-on-surface)] md:text-6xl">
+          AI Engineering Learning OS: from language-model basics to deployment-grade systems.
         </h1>
-        <p className="mt-4 max-w-3xl text-sm leading-7 text-[var(--m3-on-surface-variant)] md:text-lg">
-          Documentation-first architecture, live signal intelligence, interview simulation, and production-minded AI engineering playbooks in one coherent surface.
+        <p className="mt-4 max-w-4xl text-sm leading-7 text-[var(--m3-on-surface-variant)] md:text-lg">
+          Structured curriculum across transformers, prompt engineering, RAG, agents, multimodal systems, fine-tuning, evals, observability, safety, and production deployment.
         </p>
 
         <div className="mt-6 flex flex-wrap gap-3">
           <Link
-            href="#fde-playbook"
+            href="#ai-curriculum"
             className="inline-flex items-center gap-2 rounded-full bg-[var(--m3-primary)] px-5 py-2 text-sm font-semibold text-[var(--m3-on-primary)]"
           >
-            Open playbook
+            Explore curriculum
             <ArrowRight className="size-4" />
+          </Link>
+          <Link
+            href="#agent-lab"
+            className="inline-flex items-center gap-2 rounded-full border border-[var(--m3-outline)] bg-[var(--m3-surface-container)] px-5 py-2 text-sm text-[var(--m3-on-surface)]"
+          >
+            Run interview agent
           </Link>
           <Link
             href="/repository"
@@ -63,7 +75,7 @@ export function CommandCenterHero() {
             <p className="text-sm text-[var(--m3-on-surface-variant)]">Ready-to-adapt templates for scoping and executive delivery.</p>
           </div>
         </div>
-      </div>
+      </motion.div>
     </section>
   );
 }

@@ -1,20 +1,17 @@
 import { SidebarNav } from "@/components/layout/SidebarNav";
+import { TopNav } from "@/components/layout/TopNav";
 import { CommandCenterHero } from "@/components/sections/CommandCenterHero";
-import { FDEPlaybook } from "@/components/sections/FDEPlaybook";
-import { AIEngineeringMastery } from "@/components/sections/AIEngineeringMastery";
+import { AICurriculumHub } from "@/components/sections/AICurriculumHub";
 import { LiveSignalFeed } from "@/components/sections/LiveSignalFeed";
-import { InterviewBlackbook } from "@/components/sections/InterviewBlackbook";
-import { ArtifactTemplates } from "@/components/sections/ArtifactTemplates";
 import { ProjectTable } from "@/components/tables/ProjectTable";
 import { InteractiveAgent } from "@/components/sections/InteractiveAgent";
 
 export default function Home() {
   return (
     <main className="mx-auto max-w-[1600px] px-4 py-6 md:px-6">
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <p className="font-mono text-xs uppercase tracking-[0.12em] text-[var(--m3-on-surface-variant)]">
-          FDE + AI Engineering Resource Hub
-        </p>
+      <TopNav />
+
+      <div className="mb-4 flex items-center justify-end gap-3">
         <SidebarNav compact />
       </div>
 
@@ -22,11 +19,8 @@ export default function Home() {
         <SidebarNav />
         <div className="space-y-6">
           <CommandCenterHero />
-          <FDEPlaybook />
-          <AIEngineeringMastery />
+          <AICurriculumHub />
           <LiveSignalFeed />
-          <InterviewBlackbook />
-          <ArtifactTemplates />
           <ProjectTable sectionId="project-repository" />
           <InteractiveAgent />
         </div>
