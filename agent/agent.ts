@@ -184,7 +184,8 @@ async function run(): Promise<void> {
         attempt,
         qualityScore: candidatePlan.qualityScore,
       });
-      return;
+      lastPatchError = `Planner quality score below threshold (${candidatePlan.qualityScore})`;
+      break;
     }
 
     try {
