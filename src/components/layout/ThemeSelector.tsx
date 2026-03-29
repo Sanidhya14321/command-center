@@ -1,20 +1,19 @@
 'use client';
 
 import { useTheme, type ThemeType } from '@/lib/ThemeContext';
-import { Palette } from 'lucide-react';
+import { Check, Monitor, Moon, Palette, Sun } from 'lucide-react';
+import type React from 'react';
 import { useState } from 'react';
 
-const THEMES: { value: ThemeType; label: string; color: string }[] = [
-  { value: 'dark', label: 'Dark', color: 'bg-slate-900' },
-  { value: 'light', label: 'Light', color: 'bg-white' },
-  { value: 'ocean', label: 'Ocean', color: 'bg-blue-900' },
-  { value: 'forest', label: 'Forest', color: 'bg-emerald-900' },
-  { value: 'sunset', label: 'Sunset', color: 'bg-orange-900' },
-  { value: 'cyberpunk', label: 'Cyberpunk', color: 'bg-violet-900' },
+const THEMES: { value: ThemeType; label: string; icon: React.ReactNode }[] = [
+  { value: 'system', label: 'System', icon: <Monitor className="size-4" /> },
+  { value: 'light', label: 'Light', icon: <Sun className="size-4" /> },
+  { value: 'dark', label: 'Dark', icon: <Moon className="size-4" /> },
+  { value: 'dim', label: 'Dim', icon: <Palette className="size-4" /> },
 ];
 
 export const ThemeSelector = () => {
-  const { theme, setTheme } = useTheme();
+  const { theme, resolvedTheme, setTheme } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -26,16 +25,16 @@ export const ThemeSelector = () => {
         aria-label="Theme selector"
       >
         <Palette className="w-4 h-4" />
-        <span className="hidden sm:inline capitalize text-xs">{theme}</span>
+        <span className="hidden sm:inline capitalize text-xs">{theme === 'system' ? `System (${resolvedTheme})` : theme}</span>
       </button>
 
       {isOpen && (
-        <div className="absolute top-full right-0 mt-2 w-48 bg-m3-surface-container rounded-xl border border-m3-outline shadow-lg z-50 p-2">
+        <div className="absolute top-full right-0 mt-2 w-56 bg-m3-surface-container rounded-xl border border-m3-outline z-50 p-2">
           <p className="px-2 py-1 text-xs font-semibold text-m3-on-surface-variant uppercase tracking-wider">
             Themes
           </p>
-          <div className="grid grid-cols-2 gap-2">
-            {THEMES.map(({ value, label, color }) => (
+          <div className="grid gap-1">
+            {THEMES.map(({ value, label, icon }) => (
               <button
                 key={value}
                 onClick={() => {
@@ -48,8 +47,9 @@ export const ThemeSelector = () => {
                     : 'hover:bg-m3-surface-container-high text-m3-on-surface'
                 }`}
               >
-                <div className={`w-3 h-3 rounded-full ${color}`} />
+                {icon}
                 {label}
+                {theme === value ? <Check className="ml-auto size-4" /> : null}
               </button>
             ))}
           </div>

@@ -48,7 +48,7 @@ export function InteractiveAgent() {
       icon={<Bot className="size-6" />}
     >
       <div className="grid gap-5 lg:grid-cols-[320px_minmax(0,1fr)]">
-        <aside className="rounded-2xl border border-[var(--m3-outline)]/45 bg-[var(--m3-surface-container-low)] p-4">
+        <aside className="surface-muted p-4">
           <p className="mb-3 font-mono text-xs uppercase tracking-[0.1em] text-[var(--m3-on-surface-variant)]">Prompt presets</p>
           <div className="grid gap-2">
             {promptPresets.map((preset) => (
@@ -56,18 +56,18 @@ export function InteractiveAgent() {
                 key={preset.id}
                 type="button"
                 onClick={() => setPrompt(preset.prompt)}
-                className="rounded-xl border border-[var(--m3-outline)]/35 bg-[var(--m3-surface-container)] px-3 py-2 text-left text-sm text-[var(--m3-on-surface-variant)] transition hover:border-[var(--m3-primary)]/50 hover:text-[var(--m3-on-surface)]"
+                className="rounded-md border border-[var(--m3-outline)] bg-[var(--m3-surface-container)] px-3 py-2 text-left text-sm text-[var(--m3-on-surface-variant)] transition hover:text-[var(--m3-on-surface)]"
               >
                 {preset.label}
               </button>
             ))}
           </div>
-          <div className="mt-4 rounded-xl bg-[var(--m3-primary)]/10 p-3 text-xs leading-5 text-[var(--m3-on-surface-variant)]">
+          <div className="mt-4 rounded-md border border-[var(--m3-outline)] bg-[var(--m3-surface-container)] p-3 text-xs leading-5 text-[var(--m3-on-surface-variant)]">
             Designed to support structured outputs, tool routing, conversation state, eval scoring, and safety policy hooks.
           </div>
         </aside>
 
-        <div className="rounded-2xl border border-[var(--m3-outline)]/45 bg-[var(--m3-surface-container-low)] p-4">
+        <div className="surface-muted p-4">
           <label htmlFor="agent-prompt" className="text-sm font-semibold text-[var(--m3-secondary)]">
             Prompt
           </label>
@@ -76,14 +76,14 @@ export function InteractiveAgent() {
             value={prompt}
             onChange={(event) => setPrompt(event.target.value)}
             rows={8}
-            className="mt-2 w-full rounded-2xl border border-[var(--m3-outline)]/50 bg-[var(--m3-surface-container)] p-3 text-sm text-[var(--m3-on-surface)] outline-none focus:border-[var(--m3-primary)]"
+            className="mt-2 w-full rounded-md border border-[var(--m3-outline)] bg-[var(--m3-surface-container)] p-3 text-sm text-[var(--m3-on-surface)] outline-none focus:border-[var(--m3-primary)]"
           />
           <div className="mt-3 flex flex-wrap items-center gap-3">
             <button
               type="button"
               onClick={submitPrompt}
               disabled={!canSubmit || status === "thinking"}
-              className="inline-flex items-center gap-2 rounded-full bg-[var(--m3-primary)] px-4 py-2 text-sm font-semibold text-[var(--m3-on-primary)] disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-md border border-[var(--m3-primary)] bg-[var(--m3-primary)] px-4 py-2 text-sm font-semibold text-[var(--m3-on-primary)] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {status === "thinking" ? <LoaderCircle className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
               Generate questions
@@ -91,7 +91,7 @@ export function InteractiveAgent() {
             <span className="text-xs text-[var(--m3-on-surface-variant)]">Model: Groq fallback chain (primary to fallback to safe)</span>
           </div>
 
-          <div className="mt-4 min-h-48 rounded-2xl border border-[var(--m3-outline)]/45 bg-[var(--m3-surface-container)] p-4">
+          <div className="mt-4 min-h-48 rounded-md border border-[var(--m3-outline)] bg-[var(--m3-surface-container)] p-4">
             <AnimatePresence mode="wait">
               {status === "thinking" ? (
                 <motion.div
@@ -99,12 +99,9 @@ export function InteractiveAgent() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="flex flex-col items-center justify-center gap-3 py-8"
+                  className="flex items-center gap-2 py-4"
                 >
-                  <div className="relative size-16">
-                    <div className="absolute inset-0 animate-ping rounded-full bg-[var(--m3-primary)]/25" />
-                    <div className="absolute inset-3 rounded-full border-2 border-[var(--m3-primary)]" />
-                  </div>
+                  <LoaderCircle className="size-4 animate-spin text-[var(--m3-primary)]" />
                   <p className="font-mono text-xs uppercase tracking-[0.1em] text-[var(--m3-on-surface-variant)]">Agent thinking</p>
                 </motion.div>
               ) : null}

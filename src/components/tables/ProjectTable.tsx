@@ -82,18 +82,18 @@ export function ProjectTable({ sectionId = "project-repository" }: { sectionId?:
               value={query}
               onChange={(event) => handleQueryChange(event.target.value)}
               placeholder="Search by project name or description"
-              className="w-full rounded-2xl border border-[var(--m3-outline)]/45 bg-[var(--m3-surface-container-low)] py-2 pl-10 pr-3 text-sm text-[var(--m3-on-surface)] outline-none focus:border-[var(--m3-primary)]"
+              className="w-full rounded-md border border-[var(--m3-outline)] bg-[var(--m3-surface-container-low)] py-2 pl-10 pr-3 text-sm text-[var(--m3-on-surface)] outline-none focus:border-[var(--m3-primary)]"
             />
           </label>
-          <div className="rounded-2xl border border-[var(--m3-outline)]/45 bg-[var(--m3-surface-container-low)] px-3 py-2 text-sm text-[var(--m3-on-surface-variant)]">
+          <div className="rounded-md border border-[var(--m3-outline)] bg-[var(--m3-surface-container-low)] px-3 py-2 text-sm text-[var(--m3-on-surface-variant)]">
             Showing {currentRangeText}
           </div>
         </div>
 
-        <div className="overflow-hidden rounded-2xl border border-[var(--m3-outline)]/45">
+        <div className="overflow-hidden rounded-md border border-[var(--m3-outline)]">
           <div className="max-h-[640px] overflow-auto">
             <table className="w-full border-collapse text-sm">
-              <thead className="sticky top-0 z-10 bg-[var(--m3-surface-container-high)]">
+              <thead className="sticky top-0 z-10 border-b border-[var(--m3-outline)] bg-[var(--m3-surface-container-high)]">
                 <tr>
                   <SortableHeader label="Sr. No" active={sortKey === "id"} onClick={() => onSort("id")} />
                   <SortableHeader
@@ -110,7 +110,7 @@ export function ProjectTable({ sectionId = "project-repository" }: { sectionId?:
                 {paginated.map((item) => (
                   <tr
                     key={item.id}
-                    className="border-t border-[var(--m3-outline)]/30 bg-[var(--m3-surface-container-low)] transition hover:bg-[var(--m3-surface-container)]"
+                    className="border-t border-[var(--m3-outline)] bg-[var(--m3-surface-container-low)] transition hover:bg-[var(--m3-surface-container)]"
                   >
                     <td className="px-4 py-3 font-mono text-xs text-[var(--m3-on-surface-variant)]">{String(item.id).padStart(3, "0")}</td>
                     <td className="px-4 py-3 font-semibold text-[var(--m3-secondary)]">{item.projectName}</td>
@@ -165,7 +165,7 @@ function Pagination({
         type="button"
         onClick={onPrevious}
         disabled={page === 1}
-        className="rounded-full border border-[var(--m3-outline)]/45 px-4 py-2 text-sm text-[var(--m3-on-surface-variant)] disabled:opacity-40"
+        className="rounded-md border border-[var(--m3-outline)] px-4 py-2 text-sm text-[var(--m3-on-surface-variant)] disabled:opacity-40"
       >
         Previous
       </button>
@@ -176,7 +176,7 @@ function Pagination({
         type="button"
         onClick={onNext}
         disabled={page === totalPages}
-        className="rounded-full border border-[var(--m3-outline)]/45 px-4 py-2 text-sm text-[var(--m3-on-surface-variant)] disabled:opacity-40"
+        className="rounded-md border border-[var(--m3-outline)] px-4 py-2 text-sm text-[var(--m3-on-surface-variant)] disabled:opacity-40"
       >
         Next
       </button>
