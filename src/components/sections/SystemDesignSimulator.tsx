@@ -1,38 +1,71 @@
 'use client';
 
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Trash2, ZoomIn, ZoomOut } from 'lucide-react';
+import { useMemo, useRef, useState } from 'react';
+import { motion } from 'framer-motion';
+import {
+  Bot,
+  Boxes,
+  Database,
+  GitBranch,
+  Link2,
+  Plus,
+  Search,
+  Trash2,
+  Unlink2,
+  Workflow,
+  Wrench,
+  ZoomIn,
+  ZoomOut,
+} from 'lucide-react';
+import { SectionCard } from '@/components/primitives/SectionCard';
 
-interface ArchComponent {
+type ComponentType = 'llm' | 'vectordb' | 'api' | 'agent' | 'pipeline';
+
+type ArchComponent = {
   id: string;
-  type: 'llm' | 'vectordb' | 'api' | 'agent' | 'pipeline';
+  type: ComponentType;
   label: string;
   x: number;
   y: number;
-  color: string;
-}
+};
 
-interface Connection {
+type Connection = {
   from: string;
   to: string;
-}
+};
 
-const COMPONENT_TYPES = [
-  { type: 'llm', label: 'LLM', icon: '🧠', color: '#d0bcff' },
-  { type: 'vectordb', label: 'Vector DB', icon: '🗄️', color: '#64b5f6' },
-  { type: 'api', label: 'API', icon: '🔌', color: '#81c784' },
-  { type: 'agent', label: 'Agent', icon: '🤖', color: '#ffb74d' },
-  { type: 'pipeline', label: 'Pipeline', icon: '⚙️', color: '#ba68c8' },
+type DragState = {
+  id: string;
+  offsetX: number;
+  offsetY: number;
+} | null;
+
+const COMPONENT_TYPES: Array<{ type: ComponentType; label: string; icon: React.ReactNode }> = [
+  { type: 'llm', label: 'LLM', icon: <Bot className="size-4" /> },
+  { type: 'vectordb', label: 'Vector DB', icon: <Database className="size-4" /> },
+  { type: 'api', label: 'API', icon: <Boxes className="size-4" /> },
+  { type: 'agent', label: 'Agent', icon: <Workflow className="size-4" /> },
+  { type: 'pipeline', label: 'Data Pipeline', icon: <GitBranch className="size-4" /> },
 ];
+
+const NODE_WIDTH = 168;
+const NODE_HEIGHT = 72;
+const CANVAS_W = 1300;
+const CANVAS_H = 760;
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}
 
 export function SystemDesignSimulator({ sectionId = 'system-simulator' }: { sectionId?: string }) {
   const [components, setComponents] = useState<ArchComponent[]>([]);
   const [connections, setConnections] = useState<Connection[]>([]);
   const [scale, setScale] = useState(1);
   const [selectedFrom, setSelectedFrom] = useState<string | null>(null);
+  const [dragging, setDragging] = useState<DragState>(null);
+  const canvasRef = useRef<HTMLDivElement | null>(null);
 
-  const addComponent = (type: string) => {
+  const addComponent = (type: ComponentType) => {
     const componentType = COMPONENT_TYPES.find((c) => c.type === type);
     if (!componentType) return;
 
@@ -42,260 +75,297 @@ export function SystemDesignSimulator({ sectionId = 'system-simulator' }: { sect
 
     const newComponent: ArchComponent = {
       id: `${type}-${index + 1}`,
-      type: type as ArchComponent['type'],
+      type,
       label: `${componentType.label} ${components.filter((c) => c.type === type).length + 1}`,
-      x: 24 + col * 130,
-      y: 24 + row * 110,
-      color: componentType.color,
+      x: 40 + col * 220,
+      y: 40 + row * 120,
     };
 
-    setComponents([...components, newComponent]);
+    setComponents((prev) => [...prev, newComponent]);
   };
 
   const removeComponent = (id: string) => {
-    setComponents(components.filter((c) => c.id !== id));
-    setConnections(connections.filter((conn) => conn.from !== id && conn.to !== id));
+    setComponents((prev) => prev.filter((c) => c.id !== id));
+    setConnections((prev) => prev.filter((conn) => conn.from !== id && conn.to !== id));
+    if (selectedFrom === id) {
+      setSelectedFrom(null);
+    }
   };
 
   const connectComponents = (fromId: string, toId: string) => {
     if (fromId === toId) return;
     const alreadyConnected = connections.some((c) => c.from === fromId && c.to === toId);
     if (!alreadyConnected) {
-      setConnections([...connections, { from: fromId, to: toId }]);
+      setConnections((prev) => [...prev, { from: fromId, to: toId }]);
     }
     setSelectedFrom(null);
   };
 
-  const handleComponentClick = (id: string) => {
+  const handleNodeClick = (id: string) => {
     if (selectedFrom === id) {
       setSelectedFrom(null);
-    } else if (selectedFrom) {
-      connectComponents(selectedFrom, id);
-    } else {
-      setSelectedFrom(id);
+      return;
     }
+    if (selectedFrom) {
+      connectComponents(selectedFrom, id);
+      return;
+    }
+    setSelectedFrom(id);
   };
 
-  const analyzeBottlenecks = () => {
+  const beginDrag = (event: React.PointerEvent<HTMLDivElement>, node: ArchComponent) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const pointerX = (event.clientX - rect.left + canvas.scrollLeft) / scale;
+    const pointerY = (event.clientY - rect.top + canvas.scrollTop) / scale;
+
+    setDragging({ id: node.id, offsetX: pointerX - node.x, offsetY: pointerY - node.y });
+    (event.currentTarget as HTMLDivElement).setPointerCapture(event.pointerId);
+  };
+
+  const handleCanvasPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!dragging || !canvasRef.current) return;
+
+    const rect = canvasRef.current.getBoundingClientRect();
+    const pointerX = (event.clientX - rect.left + canvasRef.current.scrollLeft) / scale;
+    const pointerY = (event.clientY - rect.top + canvasRef.current.scrollTop) / scale;
+
+    setComponents((prev) =>
+      prev.map((node) => {
+        if (node.id !== dragging.id) return node;
+        return {
+          ...node,
+          x: clamp(pointerX - dragging.offsetX, 8, CANVAS_W - NODE_WIDTH - 8),
+          y: clamp(pointerY - dragging.offsetY, 8, CANVAS_H - NODE_HEIGHT - 8),
+        };
+      }),
+    );
+  };
+
+  const endDrag = () => setDragging(null);
+
+  const bottlenecks = useMemo(() => {
     const analysis: string[] = [];
 
-    // Check for isolated components
     components.forEach((comp) => {
-      const hasConnection =
-        connections.some((c) => c.from === comp.id || c.to === comp.id);
+      const hasConnection = connections.some((c) => c.from === comp.id || c.to === comp.id);
       if (!hasConnection && components.length > 1) {
-        analysis.push(`⚠️ ${comp.label} is isolated - may indicate missing integration`);
+        analysis.push(`${comp.label} is isolated and likely missing an integration path.`);
       }
     });
 
-    // Check for API bottlenecks
     const apiCount = components.filter((c) => c.type === 'api').length;
     if (apiCount > 2) {
-      analysis.push('⚡ Multiple APIs detected - consider API gateway for centralization');
+      analysis.push('Multiple API nodes detected. Consider an API gateway for request fan-in and governance.');
     }
 
-    // Check for vector DB connections
     const vectorDbComps = components.filter((c) => c.type === 'vectordb');
     const llmComps = components.filter((c) => c.type === 'llm');
     if (vectorDbComps.length > 0 && llmComps.length > 0) {
-      const hasConnection = connections.some(
+      const hasRetrievalPath = connections.some(
         (c) =>
           (vectorDbComps.some((v) => v.id === c.from) && llmComps.some((l) => l.id === c.to)) ||
-          (vectorDbComps.some((v) => v.id === c.to) && llmComps.some((l) => l.id === c.from))
+          (vectorDbComps.some((v) => v.id === c.to) && llmComps.some((l) => l.id === c.from)),
       );
-      if (!hasConnection) {
-        analysis.push('🔗 Vector DB detected but not connected to LLM - configure RAG pipeline');
+      if (!hasRetrievalPath) {
+        analysis.push('Vector storage exists but no retrieval path to LLM nodes is connected.');
       }
     }
 
-    // Check for agent setup
-    const agents = components.filter((c) => c.type === 'agent');
-    if (agents.length > 0 && llmComps.length === 0) {
-      analysis.push('⚠️ Agent without LLM foundation - agents need language models');
-    }
-
-    if (analysis.length === 0 && components.length > 0) {
-      analysis.push('✅ Architecture looks good - all components are connected');
+    if (!analysis.length && components.length) {
+      analysis.push('No critical bottlenecks detected. Architecture topology is consistent.');
     }
 
     return analysis;
-  };
+  }, [components, connections]);
 
-  const getBottlenecks = analyzeBottlenecks();
+  const flowSummary = useMemo(() => {
+    if (!components.length) {
+      return 'Add nodes to generate an architecture flow summary.';
+    }
+
+    const ordered = [...components]
+      .sort((a, b) => a.x - b.x || a.y - b.y)
+      .map((c) => c.label)
+      .join(' -> ');
+
+    return `Current flow path: ${ordered}.`;
+  }, [components]);
 
   return (
-    <section id={sectionId} className="space-y-6">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        viewport={{ once: true }}
-        className="rounded-[24px] border border-[var(--m3-outline)]/30 bg-gradient-to-br from-[var(--m3-surface-container-low)] to-[var(--m3-surface-container)] p-6 md:p-8"
-      >
-        <div className="mb-6 space-y-2">
-          <h2 className="text-2xl font-bold text-[var(--m3-on-surface)]">
-            🏗️ System Design Simulator
-          </h2>
-          <p className="text-sm text-[var(--m3-on-surface-variant)]">
-            Drag & drop AI system components. Click to connect. See bottlenecks instantly.
-          </p>
-        </div>
-
-        {/* Component Palette */}
-        <div className="mb-6 space-y-3">
-          <p className="text-xs font-semibold text-[var(--m3-on-surface-variant)] uppercase">
-            Add Components
+    <SectionCard
+      id={sectionId}
+      title="System Design Simulator"
+      subtitle="Create architecture diagrams visually, connect components, and inspect flow bottlenecks in real time"
+      icon={<Wrench className="size-6" />}
+    >
+      <div className="space-y-4">
+        <div className="surface-muted p-3">
+          <p className="mb-2 font-mono text-xs uppercase tracking-[0.08em] text-[var(--m3-on-surface-variant)]">
+            Component Palette
           </p>
           <div className="flex flex-wrap gap-2">
             {COMPONENT_TYPES.map((comp) => (
               <button
                 key={comp.type}
+                type="button"
                 onClick={() => addComponent(comp.type)}
-                className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition border border-[var(--m3-outline)]/40 hover:bg-[var(--m3-surface-container-high)]"
+                className="inline-flex items-center gap-2 rounded-md border border-[var(--m3-outline)] bg-[var(--m3-surface-container)] px-3 py-2 text-sm text-[var(--m3-on-surface)]"
               >
-                <Plus className="w-4 h-4" />
-                {comp.icon} {comp.label}
+                <Plus className="size-4" />
+                {comp.icon}
+                {comp.label}
               </button>
             ))}
+            <button
+              type="button"
+              onClick={() => {
+                setComponents([]);
+                setConnections([]);
+                setSelectedFrom(null);
+              }}
+              className="ml-auto inline-flex items-center gap-2 rounded-md border border-[var(--m3-outline)] bg-[var(--m3-surface-container)] px-3 py-2 text-sm text-[var(--m3-on-surface-variant)]"
+            >
+              <Trash2 className="size-4" />
+              Clear Canvas
+            </button>
           </div>
         </div>
 
-        {/* Canvas */}
-        <div className="mb-6 rounded-xl border-2 border-[var(--m3-outline)]/30 bg-[var(--m3-surface-container-lowest)] overflow-hidden relative">
-          <div className="flex items-center justify-between p-3 border-b border-[var(--m3-outline)]/20 bg-[var(--m3-surface-container-high)]/50">
-            <span className="text-xs text-[var(--m3-on-surface-variant)]">
-              {components.length} components • {connections.length} connections
-            </span>
-            <div className="flex gap-2">
+        <div className="surface-muted overflow-hidden">
+          <div className="flex items-center justify-between border-b border-[var(--m3-outline)] px-3 py-2">
+            <div className="text-sm text-[var(--m3-on-surface-variant)]">
+              {components.length} nodes · {connections.length} connections
+            </div>
+            <div className="flex items-center gap-2">
               <button
-                onClick={() => setScale(Math.max(0.5, scale - 0.1))}
-                className="p-2 hover:bg-[var(--m3-surface-container)] rounded text-sm"
+                type="button"
+                onClick={() => setScale((prev) => Math.max(0.6, Number((prev - 0.1).toFixed(2))))}
+                className="rounded-md border border-[var(--m3-outline)] px-2 py-1 text-[var(--m3-on-surface-variant)]"
               >
-                <ZoomOut className="w-4 h-4" />
+                <ZoomOut className="size-4" />
               </button>
-              <span className="text-xs px-2 py-2">{(scale * 100).toFixed(0)}%</span>
+              <span className="w-12 text-center text-xs text-[var(--m3-on-surface-variant)]">{Math.round(scale * 100)}%</span>
               <button
-                onClick={() => setScale(Math.min(2, scale + 0.1))}
-                className="p-2 hover:bg-[var(--m3-surface-container)] rounded text-sm"
+                type="button"
+                onClick={() => setScale((prev) => Math.min(1.5, Number((prev + 0.1).toFixed(2))))}
+                className="rounded-md border border-[var(--m3-outline)] px-2 py-1 text-[var(--m3-on-surface-variant)]"
               >
-                <ZoomIn className="w-4 h-4" />
+                <ZoomIn className="size-4" />
               </button>
             </div>
           </div>
 
-          <svg
-            className="absolute inset-0 w-full h-full pointer-events-none"
-            style={{ transform: `scale(${scale})`, transformOrigin: '0 0' }}
-          >
-            {connections.map((conn) => {
-              const fromComp = components.find((c) => c.id === conn.from);
-              const toComp = components.find((c) => c.id === conn.to);
-              if (!fromComp || !toComp) return null;
-
-              return (
-                <line
-                  key={`${conn.from}-${conn.to}`}
-                  x1={fromComp.x + 60}
-                  y1={fromComp.y + 40}
-                  x2={toComp.x + 60}
-                  y2={toComp.y + 40}
-                  stroke="var(--m3-primary)"
-                  strokeWidth="2"
-                  opacity="0.6"
-                  markerEnd="url(#arrowhead)"
-                />
-              );
-            })}
-            <defs>
-              <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="5" refY="5" orient="auto">
-                <polygon points="0 0, 10 5, 0 10" fill="var(--m3-primary)" />
-              </marker>
-            </defs>
-          </svg>
-
           <div
-            className="relative w-full h-96 overflow-auto bg-gradient-to-br from-[var(--m3-surface-container-low)] to-[var(--m3-surface-container-high)]"
-            style={{ background: 'url(\'data:image/svg+xml,%3Csvg width="40" height="40" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23381e72" fill-opacity="0.05"%3E%3Cpath d="M0 0h40v40H0z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\')' }}
+            ref={canvasRef}
+            className="relative h-[420px] overflow-auto"
+            onPointerMove={handleCanvasPointerMove}
+            onPointerUp={endDrag}
+            onPointerCancel={endDrag}
           >
-            <AnimatePresence>
-              {components.map((comp) => {
-                const typeInfo = COMPONENT_TYPES.find((c) => c.type === comp.type);
+            <div className="relative" style={{ width: CANVAS_W * scale, height: CANVAS_H * scale }}>
+              <svg className="absolute left-0 top-0 h-full w-full pointer-events-none">
+                {connections.map((conn) => {
+                  const fromNode = components.find((c) => c.id === conn.from);
+                  const toNode = components.find((c) => c.id === conn.to);
+                  if (!fromNode || !toNode) return null;
+
+                  return (
+                    <line
+                      key={`${conn.from}-${conn.to}`}
+                      x1={(fromNode.x + NODE_WIDTH) * scale}
+                      y1={(fromNode.y + NODE_HEIGHT / 2) * scale}
+                      x2={toNode.x * scale}
+                      y2={(toNode.y + NODE_HEIGHT / 2) * scale}
+                      stroke="var(--m3-primary)"
+                      strokeWidth="1.5"
+                      strokeDasharray="4 3"
+                    />
+                  );
+                })}
+              </svg>
+
+              {components.map((node) => {
+                const typeInfo = COMPONENT_TYPES.find((c) => c.type === node.type);
                 return (
-                  <div
-                    key={comp.id}
+                  <motion.div
+                    key={node.id}
                     className="absolute"
-                    style={{
-                      left: `${comp.x}px`,
-                      top: `${comp.y}px`,
-                      transform: `scale(${scale})`,
-                      transformOrigin: '0 0',
-                    }}
+                    style={{ left: node.x * scale, top: node.y * scale, width: NODE_WIDTH * scale }}
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
                   >
-                    <motion.div
-                      initial={{ scale: 0, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      exit={{ scale: 0, opacity: 0 }}
-                      onClick={() => handleComponentClick(comp.id)}
-                      className={`w-24 py-3 px-2 rounded-lg border-2 transition cursor-pointer text-center text-xs font-semibold ${
-                        selectedFrom === comp.id
-                          ? 'border-[var(--m3-accent)] bg-[var(--m3-accent)]/20'
-                          : 'border-[var(--m3-outline)]/40 hover:border-[var(--m3-primary)]/60'
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      onPointerDown={(e) => beginDrag(e, node)}
+                      onClick={() => handleNodeClick(node.id)}
+                      className={`surface flex cursor-pointer items-start justify-between gap-2 p-2 text-left ${
+                        selectedFrom === node.id ? 'border-[var(--m3-primary)]' : ''
                       }`}
-                      style={{ backgroundColor: `${typeInfo?.color}20` }}
                     >
-                      <div className="text-lg mb-1">{typeInfo?.icon}</div>
-                      <div className="text-[var(--m3-on-surface)]">{comp.label}</div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 text-sm font-medium text-[var(--m3-on-surface)]">
+                          {typeInfo?.icon}
+                          <span className="truncate">{node.label}</span>
+                        </div>
+                        <p className="mt-1 text-xs text-[var(--m3-on-surface-variant)]">Drag to move · click to connect</p>
+                      </div>
                       <button
+                        type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          removeComponent(comp.id);
+                          removeComponent(node.id);
                         }}
-                        className="mt-1 text-xs text-[var(--m3-error)] hover:bg-[var(--m3-error)]/20 w-full p-1 rounded"
+                        className="rounded-md border border-[var(--m3-outline)] p-1 text-[var(--m3-on-surface-variant)]"
                       >
-                        <Trash2 className="w-3 h-3 inline" />
+                        <Trash2 className="size-3" />
                       </button>
-                    </motion.div>
-                  </div>
+                    </div>
+                  </motion.div>
                 );
               })}
-            </AnimatePresence>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 border-t border-[var(--m3-outline)] px-3 py-2 text-xs text-[var(--m3-on-surface-variant)]">
+            <Link2 className="size-3" />
+            Click one node and then another to create a directed connection.
+            {selectedFrom ? (
+              <span className="inline-flex items-center gap-1 rounded-md border border-[var(--m3-outline)] px-2 py-0.5">
+                <Unlink2 className="size-3" />
+                Source: {components.find((c) => c.id === selectedFrom)?.label}
+              </span>
+            ) : null}
           </div>
         </div>
 
-        {/* Instructions */}
-        <div className="p-4 rounded-lg bg-[var(--m3-surface-container-high)]/40 border border-[var(--m3-outline)]/20 text-xs text-[var(--m3-on-surface-variant)]">
-          <p className="mb-2 font-semibold">How to use:</p>
-          <ul className="space-y-1 list-disc list-inside">
-            <li>Add components from the palette above</li>
-            <li>Click a component, then click another to create a connection</li>
-            <li>Bottleneck analysis updates automatically</li>
-          </ul>
-        </div>
-      </motion.div>
-
-      {/* Bottleneck Analysis */}
-      {getBottlenecks.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="rounded-[24px] border border-[var(--m3-outline)]/30 bg-gradient-to-br from-[var(--m3-surface-container-high)]/50 to-[var(--m3-surface-container)] p-6"
-        >
-          <h3 className="font-bold text-[var(--m3-on-surface)] mb-4">🔍 Architecture Analysis</h3>
-          <div className="space-y-2">
-            {getBottlenecks.map((bottleneck, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.1 }}
-                className="p-3 rounded-lg bg-[var(--m3-surface-container-low)] border border-[var(--m3-outline)]/20 text-sm text-[var(--m3-on-surface)]"
-              >
-                {bottleneck}
-              </motion.div>
-            ))}
+        <div className="grid gap-3 lg:grid-cols-2">
+          <div className="surface-muted p-4">
+            <div className="mb-2 flex items-center gap-2">
+              <Search className="size-4 text-[var(--m3-on-surface-variant)]" />
+              <h3 className="text-sm font-semibold text-[var(--m3-on-surface)]">Flow Explanation</h3>
+            </div>
+            <p className="text-sm leading-6 text-[var(--m3-on-surface-variant)]">{flowSummary}</p>
           </div>
-        </motion.div>
-      )}
-    </section>
+
+          <div className="surface-muted p-4">
+            <div className="mb-2 flex items-center gap-2">
+              <Wrench className="size-4 text-[var(--m3-on-surface-variant)]" />
+              <h3 className="text-sm font-semibold text-[var(--m3-on-surface)]">Bottleneck Analysis</h3>
+            </div>
+            <ul className="space-y-2 text-sm text-[var(--m3-on-surface-variant)]">
+              {bottlenecks.map((line) => (
+                <li key={line} className="rounded-md border border-[var(--m3-outline)] bg-[var(--m3-surface-container)] px-3 py-2">
+                  {line}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+    </SectionCard>
   );
 }

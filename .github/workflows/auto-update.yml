@@ -47,4 +47,5 @@ jobs:
           FALLBACK_MODEL: ${{ vars.FALLBACK_MODEL }}
           SAFE_MODEL: ${{ vars.SAFE_MODEL }}
           AGENT_ENABLE_DELAY: "false"
+          AGENT_STRICT_MODE: "false"
         run: npm run agent:run

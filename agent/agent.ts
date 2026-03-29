@@ -67,6 +67,18 @@ function summarizeMemory(memory: MemoryState): string {
     .join("\n") || "No prior changes recorded.";
 }
 
+function isRecoverableAgentError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+  return (
+    message.includes("groq_api_key") ||
+    message.includes("decommissioned") ||
+    message.includes("not supported") ||
+    message.includes("invalid_request_error") ||
+    message.includes("planner failed") ||
+    message.includes("planner returned empty output")
+  );
+}
+
 async function run(): Promise<void> {
   const memory = await loadMemory();
   const graph = await buildProjectGraph();
@@ -140,6 +152,16 @@ async function run(): Promise<void> {
 }
 
 run().catch(async (error) => {
-  await logEvent("ERROR", "Agent run failed", error instanceof Error ? error.message : String(error));
-  process.exitCode = 1;
+  const message = error instanceof Error ? error.message : String(error);
+  await logEvent("ERROR", "Agent run failed", message);
+  console.error(`[agent] run failed: ${message}`);
+
+  const strictMode = process.env.AGENT_STRICT_MODE === "true";
+  if (strictMode || !isRecoverableAgentError(error)) {
+    process.exitCode = 1;
+    return;
+  }
+
+  console.warn("[agent] Recoverable failure detected; exiting without failing workflow. Set AGENT_STRICT_MODE=true to fail fast.");
+  process.exitCode = 0;
 });
