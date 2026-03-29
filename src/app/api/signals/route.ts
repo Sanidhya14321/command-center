@@ -18,6 +18,8 @@ type SignalItem = {
   publishedAt: string;
   relevanceScore: number;
   tags: string[];
+  category?: 'Agents' | 'Infra' | 'LLMs' | 'Tools' | 'Evaluation';
+  whyItMatters?: string;
 };
 
 const KEYWORDS = [
@@ -45,6 +47,8 @@ const fallbackSignals: SignalItem[] = [
     publishedAt: new Date(Date.now() - 1000 * 60 * 48).toISOString(),
     relevanceScore: 0.94,
     tags: ["evals", "deployment", "quality"],
+    category: "Evaluation",
+    whyItMatters: "Production stability depends on quantified quality gates, not intuition. Evals catch regressions before users do.",
   },
   {
     id: "fallback-2",
@@ -56,6 +60,8 @@ const fallbackSignals: SignalItem[] = [
     publishedAt: new Date(Date.now() - 1000 * 60 * 160).toISOString(),
     relevanceScore: 0.89,
     tags: ["agents", "tools", "safety"],
+    category: "Agents",
+    whyItMatters: "Deterministic tool layers reduce hallucinated API calls and enable observability. This is the difference between demos and production.",
   },
   {
     id: "fallback-3",
@@ -67,6 +73,8 @@ const fallbackSignals: SignalItem[] = [
     publishedAt: new Date(Date.now() - 1000 * 60 * 300).toISOString(),
     relevanceScore: 0.87,
     tags: ["rag", "retrieval", "infra"],
+    category: "Infra",
+    whyItMatters: "Hybrid retrieval + reranking achieves 15-30% less hallucination with minimal latency cost. Essential for grounded reasoning at scale.",
   },
 ];
 
@@ -81,6 +89,45 @@ function extractTags(text: string) {
   return KEYWORDS.filter((keyword) => lower.includes(keyword)).slice(0, 4);
 }
 
+function categorizeSignal(text: string): SignalItem['category'] {
+  const lower = text.toLowerCase();
+  if (lower.includes('agent') || lower.includes('orchestr')) return 'Agents';
+  if (lower.includes('infra') || lower.includes('deployment') || lower.includes('scaling')) return 'Infra';
+  if (lower.includes('llm') || lower.includes('language model') || lower.includes('gpt')) return 'LLMs';
+  if (lower.includes('tool') || lower.includes('function calling')) return 'Tools';
+  if (lower.includes('eval') || lower.includes('benchmark') || lower.includes('metric')) return 'Evaluation';
+  return undefined;
+}
+
+async function generateWhyItMatters(title: string, summary: string): Promise<string> {
+  if (!process.env.GROQ_API_KEY) {
+    return 'Analyze this signal to understand its business and technical impact.';
+  }
+
+  const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+
+  try {
+    const completion = await groq.chat.completions.create({
+      model: 'llama3-70b-8192',
+      max_tokens: 80,
+      temperature: 0.3,
+      messages: [
+        {
+          role: 'system',
+          content: 'Explain why this AI signal matters for production AI systems in one sentence. Focus on immediate impact.',
+        },
+        {
+          role: 'user',
+          content: `${title}. ${summary}`,
+        },
+      ],
+    });
+
+    return completion.choices[0]?.message?.content?.trim() || 'Signal relevant for AI engineering practices.';
+  } catch {
+    return 'Signal relevant for AI engineering practices.';
+  }
+}
 async function summarizeWithGroq(items: SignalItem[]): Promise<SignalItem[]> {
   if (!process.env.GROQ_API_KEY) {
     return items;
@@ -159,6 +206,8 @@ export async function GET() {
           publishedAt: article.publishedAt || new Date().toISOString(),
           relevanceScore,
           tags: extractTags(combined),
+              category: categorizeSignal(combined),
+              whyItMatters: undefined,
         } satisfies SignalItem;
       })
       .filter((item) => item.relevanceScore >= 0.61)

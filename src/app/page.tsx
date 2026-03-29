@@ -5,6 +5,9 @@ import { AICurriculumHub } from "@/components/sections/AICurriculumHub";
 import { LiveSignalFeed } from "@/components/sections/LiveSignalFeed";
 import { ProjectTable } from "@/components/tables/ProjectTable";
 import { InteractiveAgent } from "@/components/sections/InteractiveAgent";
+import { SituationSolutionEngine } from "@/components/sections/SituationSolutionEngine";
+import { SystemDesignSimulator } from "@/components/sections/SystemDesignSimulator";
+import { InterviewModeAgent } from "@/components/sections/InterviewModeAgent";
 
 export default function Home() {
   return (
@@ -20,8 +23,11 @@ export default function Home() {
         <div className="space-y-6">
           <CommandCenterHero />
           <AICurriculumHub />
+            <SituationSolutionEngine sectionId="situation-solution" />
+            <SystemDesignSimulator sectionId="system-simulator" />
           <LiveSignalFeed />
           <ProjectTable sectionId="project-repository" />
+            <InterviewModeAgent sectionId="interview-mode" />
           <InteractiveAgent />
         </div>
       </div>

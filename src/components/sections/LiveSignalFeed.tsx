@@ -17,6 +17,8 @@ type SignalItem = {
   publishedAt: string;
   relevanceScore: number;
   tags: string[];
+  category?: 'Agents' | 'Infra' | 'LLMs' | 'Tools' | 'Evaluation';
+  whyItMatters?: string;
 };
 
 type FeedResponse = {
@@ -99,12 +101,39 @@ export function LiveSignalFeed() {
                   <div className="mb-2 flex flex-wrap items-center gap-2">
                     <Badge>{item.source}</Badge>
                     <span className="text-xs text-[var(--m3-on-surface-variant)]">{formatRelativeTime(item.publishedAt)}</span>
-                    <span className="rounded-full bg-[var(--m3-accent)]/30 px-2 py-1 text-xs text-[var(--m3-secondary)]">
-                      Relevance {item.relevanceScore.toFixed(2)}
+                    {item.category && (
+                      <Badge className="bg-[var(--m3-primary)]/20 text-[var(--m3-primary)]">
+                        {item.category}
+                      </Badge>
+                    )}
+                    <div className="ml-auto flex items-center gap-2">
+                      <span className="text-xs text-[var(--m3-on-surface-variant)]">Score:</span>
+                      <div className="relative h-6 w-16 rounded-full bg-[var(--m3-surface-container-high)]">
+                        <div
+                          className={`h-full rounded-full transition-all ${
+                            item.relevanceScore > 80
+                              ? 'bg-emerald-500'
+                              : item.relevanceScore > 60
+                                ? 'bg-yellow-500'
+                                : 'bg-orange-500'
+                          }`}
+                          style={{ width: `${item.relevanceScore}%` }}
+                        />
+                        <span className="absolute inset-0 flex items-center justify-center text-xs font-semibold text-[var(--m3-on-surface-variant)]">
+                          {item.relevanceScore.toFixed(0)}
+                        </span>
+                      </div>
+                    </div>
                     </span>
                   </div>
                   <h3 className="text-base font-semibold text-[var(--m3-on-surface)] md:text-lg">{item.title}</h3>
                   <p className="mt-2 text-sm leading-6 text-[var(--m3-on-surface-variant)]">{item.summary}</p>
+                    {item.whyItMatters && (
+                      <div className="mt-3 rounded-lg bg-[var(--m3-accent)]/10 border border-[var(--m3-accent)]/30 p-3">
+                        <p className="text-xs font-semibold text-[var(--m3-accent)] mb-1">💡 Why this matters:</p>
+                        <p className="text-sm text-[var(--m3-on-surface-variant)]">{item.whyItMatters}</p>
+                      </div>
+                    )}
                   <div className="mt-3 flex flex-wrap gap-2">
                     {item.tags.map((tag) => (
                       <span key={tag} className="rounded-full border border-[var(--m3-outline)]/50 px-2 py-1 text-xs text-[var(--m3-on-surface-variant)]">

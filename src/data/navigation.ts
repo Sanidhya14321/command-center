@@ -18,6 +18,18 @@ export const primaryNav: NavItem[] = [
     href: "#ai-curriculum",
     description: "Complete chapter progression from fundamentals to deployment",
   },
+    {
+      id: "situation-solution",
+      label: "Solution Engine",
+      href: "#situation-solution",
+      description: "Stack recommendations based on use case, scale, and latency",
+    },
+    {
+      id: "system-simulator",
+      label: "System Simulator",
+      href: "#system-simulator",
+      description: "Drag & drop architecture builder with bottleneck analysis",
+    },
   {
     id: "signal-intelligence",
     label: "Signal Intelligence",
@@ -42,4 +54,10 @@ export const primaryNav: NavItem[] = [
     href: "#agent-lab",
     description: "Interactive interview generator powered by Groq",
   },
+    {
+      id: "interview-mode",
+      label: "Interview Mode",
+      href: "#interview-mode",
+      description: "Mock interviewer with real-time feedback and scoring",
+    },
 ];
