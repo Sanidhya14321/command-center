@@ -65,6 +65,12 @@ export function InterviewModeAgent({ sectionId = 'interview-mode' }: { sectionId
     return Math.min(100, Math.round((session.questionCount / MAX_QUESTIONS) * 100));
   }, [session]);
 
+  const answerWordCount = useMemo(() => {
+    return inputAnswer.trim() ? inputAnswer.trim().split(/\s+/).length : 0;
+  }, [inputAnswer]);
+
+  const canSubmitAnswer = answerWordCount >= 12 && !isLoading;
+
   const startInterview = async () => {
     if (!selectedTopic) return;
 
@@ -343,22 +349,33 @@ export function InterviewModeAgent({ sectionId = 'interview-mode' }: { sectionId
             <textarea
               value={inputAnswer}
               onChange={(e) => setInputAnswer(e.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' && (event.ctrlKey || event.metaKey) && canSubmitAnswer) {
+                  event.preventDefault();
+                  void submitAnswer();
+                }
+              }}
               placeholder="Type your answer with architecture choice, tradeoffs, and production validation..."
               rows={4}
               className="w-full rounded-lg bg-[var(--m3-surface-container-high)] px-4 py-3 text-sm border border-[var(--m3-outline)]/40 focus:outline-none focus:border-[var(--m3-primary)]"
             />
             <div className="flex items-center justify-between gap-2">
               <p className="text-xs text-[var(--m3-on-surface-variant)]">
-                Tip: include one metric and one fallback strategy in each answer.
+                Tip: include one metric and one fallback strategy in each answer. Press Ctrl+Enter to submit.
               </p>
               <button
                 onClick={submitAnswer}
-                disabled={!inputAnswer.trim() || isLoading}
+                disabled={!canSubmitAnswer}
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--m3-accent)] text-[var(--m3-on-primary)] hover:shadow-lg disabled:opacity-50"
               >
                 <Send className="w-4 h-4" />
                 Submit Answer
               </button>
+            </div>
+            <div className="text-xs text-[var(--m3-on-surface-variant)]">
+              {answerWordCount < 12
+                ? `Write at least ${12 - answerWordCount} more words for a stronger answer.`
+                : `${answerWordCount} words`}
             </div>
           </div>
         )}

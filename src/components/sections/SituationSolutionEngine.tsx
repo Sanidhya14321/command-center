@@ -76,7 +76,14 @@ export function SituationSolutionEngine({ sectionId = 'situation-solution' }: { 
       const response = await fetch('/api/stack-recommendation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ useCase, scale, latency }),
+        body: JSON.stringify({
+          useCase,
+          scale,
+          latency,
+          useCaseLabel: selectedUseCase?.label,
+          scaleLabel: selectedScale?.label,
+          latencyLabel: selectedLatency?.label,
+        }),
       });
 
       if (!response.ok) {
@@ -102,7 +109,7 @@ export function SituationSolutionEngine({ sectionId = 'situation-solution' }: { 
     () =>
       result?.thinkingProcess
         .split('\n')
-        .map((line) => line.replace(/^[\s\-•\d.)]+/, '').trim())
+        .map((line) => line.replace(/^[\s\-\u2022\d.)]+/, '').trim())
         .filter(Boolean) ?? [],
     [result]
   );

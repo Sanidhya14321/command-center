@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { BadgeHelp, Bot, Building2, GraduationCap, LoaderCircle, Sparkles, Target } from "lucide-react";
+import { BadgeHelp, Bot, Building2, Clipboard, GraduationCap, LoaderCircle, Sparkles, Target } from "lucide-react";
 import { SectionCard } from "@/components/primitives/SectionCard";
 import { promptPresets } from "@/data/promptPresets";
 
@@ -32,6 +32,8 @@ export function InteractiveAgent() {
   const [level, setLevel] = useState<"junior" | "mid" | "senior">("mid");
   const [companyType, setCompanyType] = useState("Product startup");
   const [questionCount, setQuestionCount] = useState(5);
+  const [showRawOutput, setShowRawOutput] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const canSubmit = useMemo(() => prompt.trim().length > 8, [prompt]);
 
@@ -56,6 +58,8 @@ export function InteractiveAgent() {
   async function submitPrompt() {
     setStatus("thinking");
     setResponse(null);
+    setShowRawOutput(false);
+    setCopied(false);
     try {
       const res = await fetch("/api/agent", {
         method: "POST",
@@ -72,6 +76,17 @@ export function InteractiveAgent() {
       setStatus("ready");
     } catch {
       setStatus("error");
+    }
+  }
+
+  async function copyPack() {
+    if (!response) return;
+    try {
+      await navigator.clipboard.writeText(response.output);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1600);
+    } catch (error) {
+      console.error("Failed to copy interview pack:", error);
     }
   }
 
@@ -213,6 +228,23 @@ export function InteractiveAgent() {
                     <p className="mt-1 text-xs leading-5 text-[var(--m3-on-surface-variant)]">
                       {response.structured?.strategy || "Use this pack to practice tradeoffs, system reasoning, and production readiness."}
                     </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={copyPack}
+                        className="inline-flex items-center gap-1 rounded-md border border-[var(--m3-outline)] px-2 py-1 text-xs text-[var(--m3-on-surface-variant)]"
+                      >
+                        <Clipboard className="size-3" />
+                        {copied ? "Copied" : "Copy pack"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowRawOutput((prev) => !prev)}
+                        className="rounded-md border border-[var(--m3-outline)] px-2 py-1 text-xs text-[var(--m3-on-surface-variant)]"
+                      >
+                        {showRawOutput ? "Hide raw" : "Show raw"}
+                      </button>
+                    </div>
                   </div>
 
                   <div className="space-y-3">
@@ -231,6 +263,12 @@ export function InteractiveAgent() {
                       </div>
                     ))}
                   </div>
+
+                  {showRawOutput ? (
+                    <pre className="overflow-auto rounded-md border border-[var(--m3-outline)]/50 bg-[var(--m3-surface-container-high)] p-3 text-xs text-[var(--m3-on-surface-variant)]">
+                      {response.output}
+                    </pre>
+                  ) : null}
                 </motion.div>
               ) : null}
 

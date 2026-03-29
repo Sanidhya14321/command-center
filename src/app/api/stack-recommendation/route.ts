@@ -4,6 +4,9 @@ interface RecommendationRequest {
   useCase: string;
   scale: string;
   latency: string;
+  useCaseLabel?: string;
+  scaleLabel?: string;
+  latencyLabel?: string;
 }
 
 interface StackRecommendation {
@@ -62,7 +65,8 @@ const CURATED_RECOMMENDATIONS: Record<string, Record<string, Record<string, Stac
 async function generateRecommendationWithGroq(
   useCase: string,
   scale: string,
-  latency: string
+  latency: string,
+  labels?: { useCaseLabel?: string; scaleLabel?: string; latencyLabel?: string }
 ): Promise<StackResult> {
   const prompt = `You are a principal AI infrastructure architect.
 Your job is to recommend a practical, production-ready stack under explicit constraints.
@@ -78,6 +82,9 @@ Rules:
 Use Case: ${useCase}
 Scale: ${scale}
 Latency: ${latency}
+Use Case Label: ${labels?.useCaseLabel ?? useCase}
+Scale Label: ${labels?.scaleLabel ?? scale}
+Latency Label: ${labels?.latencyLabel ?? latency}
 
 Return JSON with this exact schema:
 {
@@ -127,7 +134,8 @@ Return JSON with this exact schema:
 
 export async function POST(request: Request) {
   try {
-    const { useCase, scale, latency } = (await request.json()) as RecommendationRequest;
+    const { useCase, scale, latency, useCaseLabel, scaleLabel, latencyLabel } =
+      (await request.json()) as RecommendationRequest;
 
     // Try curated recommendation first
     if (CURATED_RECOMMENDATIONS[useCase]?.[scale]?.[latency]) {
@@ -136,7 +144,11 @@ export async function POST(request: Request) {
 
     // Fall back to Groq if available
     if (hasGroqApiKey()) {
-      const recommendation = await generateRecommendationWithGroq(useCase, scale, latency);
+      const recommendation = await generateRecommendationWithGroq(useCase, scale, latency, {
+        useCaseLabel,
+        scaleLabel,
+        latencyLabel,
+      });
       return Response.json(recommendation);
     }
 

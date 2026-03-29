@@ -6,6 +6,7 @@ import {
   ArrowRight,
   Bot,
   Boxes,
+  Copy,
   Database,
   GitBranch,
   LayoutTemplate,
@@ -111,6 +112,7 @@ export function SystemDesignSimulator({ sectionId = 'system-simulator' }: { sect
   const [selectedFrom, setSelectedFrom] = useState<string | null>(null);
   const [selectedConnection, setSelectedConnection] = useState<string | null>(null);
   const [dragging, setDragging] = useState<DragState>(null);
+  const [copied, setCopied] = useState(false);
   const canvasRef = useRef<HTMLDivElement | null>(null);
 
   const addComponent = (type: ComponentType) => {
@@ -175,6 +177,36 @@ export function SystemDesignSimulator({ sectionId = 'system-simulator' }: { sect
     const [from, to] = selectedConnection.split('::');
     setConnections((prev) => prev.filter((conn) => !(conn.from === from && conn.to === to)));
     setSelectedConnection(null);
+  };
+
+  const autoLayout = () => {
+    if (!components.length) return;
+
+    const incomingCounts = components.reduce<Record<string, number>>((acc, node) => {
+      acc[node.id] = connections.filter((conn) => conn.to === node.id).length;
+      return acc;
+    }, {});
+
+    const sorted = [...components].sort((a, b) => {
+      return (incomingCounts[a.id] ?? 0) - (incomingCounts[b.id] ?? 0) || a.label.localeCompare(b.label);
+    });
+
+    const columnWidth = 240;
+    const rowHeight = 120;
+    const maxPerColumn = 5;
+
+    setComponents(
+      sorted.map((node, index) => {
+        const col = Math.floor(index / maxPerColumn);
+        const row = index % maxPerColumn;
+
+        return {
+          ...node,
+          x: clamp(60 + col * columnWidth, 8, CANVAS_W - NODE_WIDTH - 8),
+          y: clamp(60 + row * rowHeight, 8, CANVAS_H - NODE_HEIGHT - 8),
+        };
+      }),
+    );
   };
 
   const connectComponents = (fromId: string, toId: string) => {
@@ -291,6 +323,23 @@ export function SystemDesignSimulator({ sectionId = 'system-simulator' }: { sect
     return `High connectivity (${ratio}%). Topology is well-linked for a draft design.`;
   }, [components, connections]);
 
+  const copySummary = async () => {
+    const lines = [
+      `Nodes: ${components.length}`,
+      `Connections: ${connections.length}`,
+      flowSummary,
+      ...bottlenecks.map((item, idx) => `Risk ${idx + 1}: ${item}`),
+    ];
+
+    try {
+      await navigator.clipboard.writeText(lines.join('\n'));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch (error) {
+      console.error('Failed to copy architecture summary:', error);
+    }
+  };
+
   return (
     <SectionCard
       id={sectionId}
@@ -352,6 +401,15 @@ export function SystemDesignSimulator({ sectionId = 'system-simulator' }: { sect
               {components.length} nodes | {connections.length} connections
             </div>
             <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={autoLayout}
+                disabled={!components.length}
+                className="rounded-md border border-[var(--m3-outline)] px-2 py-1 text-[var(--m3-on-surface-variant)] disabled:opacity-50"
+                title="Auto arrange nodes"
+              >
+                Auto Layout
+              </button>
               <button
                 type="button"
                 onClick={removeSelectedConnection}
@@ -489,6 +547,14 @@ export function SystemDesignSimulator({ sectionId = 'system-simulator' }: { sect
               <ArrowRight className="size-3" />
               {architectureHealth}
             </p>
+            <button
+              type="button"
+              onClick={copySummary}
+              className="mt-3 inline-flex items-center gap-2 rounded-md border border-[var(--m3-outline)] px-3 py-2 text-xs text-[var(--m3-on-surface-variant)]"
+            >
+              <Copy className="size-3" />
+              {copied ? 'Copied architecture summary' : 'Copy architecture summary'}
+            </button>
           </div>
 
           <div className="surface-muted p-4">
