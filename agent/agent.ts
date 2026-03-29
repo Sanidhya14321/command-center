@@ -52,6 +52,10 @@ function withinDailyCommitLimit(memory: MemoryState): boolean {
   return memory.dailyCommit.count < memory.dailyCommit.max;
 }
 
+function requireHardOutcome(): boolean {
+  return process.env.AGENT_STRICT_MODE === "true" || process.env.AGENT_FORCE_COMPONENT_UPDATE === "true";
+}
+
 async function maybeDelay(): Promise<void> {
   if (process.env.AGENT_ENABLE_DELAY !== "true") return;
   const min = 45;
@@ -146,10 +150,15 @@ async function applyForcedComponentRecovery(params: {
 async function run(): Promise<void> {
   const memory = await loadMemory();
   const graph = await buildProjectGraph();
+  const hardOutcomeRequired = requireHardOutcome();
 
-  if (!withinDailyCommitLimit(memory)) {
+  if (!withinDailyCommitLimit(memory) && !hardOutcomeRequired) {
     await logEvent("INFO", "Daily commit limit reached, skipping run", memory.dailyCommit);
     return;
+  }
+
+  if (!withinDailyCommitLimit(memory) && hardOutcomeRequired) {
+    await logEvent("WARN", "Bypassing daily commit limit due to strict/forced mode", memory.dailyCommit);
   }
 
   const mode = pickMode();
@@ -282,6 +291,10 @@ async function run(): Promise<void> {
   let patchFiles = plan.diffPatch ? extractTargetFilesFromPatch(plan.diffPatch) : [];
   let candidateFiles = Array.from(new Set([...changedFiles, ...patchFiles, ...operationAppliedFiles])).filter(Boolean);
 
+  if (!changedFiles.length && hardOutcomeRequired) {
+    throw new Error("Component guard: no working tree changes were produced by planner output");
+  }
+
   if (!candidateFiles.some((filePath) => isComponentFile(filePath))) {
     await logEvent("WARN", "Component guard failed after primary apply; rolling back and forcing Groq recovery", {
       files: candidateFiles,
@@ -320,11 +333,28 @@ async function run(): Promise<void> {
       error: error instanceof Error ? error.message : String(error),
       files: candidateFiles,
     });
+
+    if (hardOutcomeRequired) {
+      throw error;
+    }
+
     return;
   }
 
   await maybeDelay();
-  await commitAndPush(plan.commitMessage);
+  const committed = await commitAndPush(plan.commitMessage);
+  if (!committed) {
+    await logEvent("WARN", "No commit created after successful apply/validate", {
+      files: candidateFiles,
+      commitMessage: plan.commitMessage,
+    });
+
+    if (hardOutcomeRequired) {
+      throw new Error("Autonomous run completed without creating a commit");
+    }
+
+    return;
+  }
 
   memory.dailyCommit.count += 1;
   memory.lastRunAt = new Date().toISOString();
