@@ -109,21 +109,3 @@ export function FailureModeExplorer({ sectionId = "failure-mode-explorer" }: { s
     </SectionCard>
   );
 }
-/* Autonomous Groq component update
-
-
-// AI-engineering content: Emergency recovery attempt
-const emergencyRecoveryContent = (
-  <div>
-    <h2>Emergency Recovery Attempt</h2>
-    <p>This is a critical step in the failure mode exploration process.</p>
-  </div>
-);
-
-// Render the emergency recovery content
-return (
-  <div>
-    {emergencyRecoveryContent}
-  </div>
-);
-*/

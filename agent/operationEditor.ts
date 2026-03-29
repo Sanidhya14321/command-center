@@ -124,6 +124,23 @@ function tryFuzzyReplaceBlock(current: string, find: string, replace: string): s
   return nextLines.join("\n");
 }
 
+function stripPreviousAutonomousAppendBlocks(content: string): string {
+  return content.replace(/\n?\/\* Autonomous Groq component update[\s\S]*?\*\/\n?/g, "\n").trimEnd();
+}
+
+function sanitizeForcedTsLikeText(content: string): string {
+  const withoutFences = content.replace(/```[\s\S]*?```/g, " ");
+  const lines = withoutFences
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .filter((line) => !/^(import|export|const|let|var|return|function|class)\b/i.test(line))
+    .filter((line) => !/[{}<>;]/.test(line))
+    .slice(0, 5);
+
+  return lines.join("\n").trim();
+}
+
 function buildSafeAppendContent(filePath: string, content: string): string {
   const isTsLike = filePath.endsWith(".ts") || filePath.endsWith(".tsx");
   const forcedMode = process.env.AGENT_FORCE_COMPONENT_UPDATE === "true";
@@ -132,8 +149,13 @@ function buildSafeAppendContent(filePath: string, content: string): string {
     return content;
   }
 
-  const sanitized = content.replace(/\*\//g, "* /");
-  return ["/* Autonomous Groq component update", sanitized.trimEnd(), "*/"].join("\n");
+  const sanitizedText = sanitizeForcedTsLikeText(content);
+  if (!sanitizedText) {
+    throw new Error(`Operation failed: append content not safe for forced TS/TSX mode in ${filePath}`);
+  }
+
+  const escaped = sanitizedText.replace(/\*\//g, "* /");
+  return ["/* Autonomous Groq component update", escaped, "*/"].join("\n");
 }
 
 export async function applyOperations(operations: EditOperation[]): Promise<string[]> {
@@ -171,7 +193,10 @@ export async function applyOperations(operations: EditOperation[]): Promise<stri
     }
 
     if (op.type === "append") {
-      const current = await fs.readFile(absolutePath, "utf-8").catch(() => "");
+      const currentRaw = await fs.readFile(absolutePath, "utf-8").catch(() => "");
+      const current = (process.env.AGENT_FORCE_COMPONENT_UPDATE === "true" && (op.filePath.endsWith(".ts") || op.filePath.endsWith(".tsx")))
+        ? stripPreviousAutonomousAppendBlocks(currentRaw)
+        : currentRaw;
       const separator = current && !current.endsWith("\n") ? "\n" : "";
       const safeContent = buildSafeAppendContent(op.filePath, op.content);
       const next = `${current}${separator}${safeContent.trimEnd()}\n`;
