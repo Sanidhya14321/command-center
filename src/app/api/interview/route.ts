@@ -1,8 +1,4 @@
-import { Groq } from 'groq-sdk';
-
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
-});
+import { createGroqCompletion, hasGroqApiKey } from '@/lib/groqFallback';
 
 interface InterviewRequest {
   topic: string;
@@ -62,15 +58,13 @@ async function generateInterviewQuestion(
   const prompt = `Generate a ${difficulty} level interview question about ${topic} for AI engineers. Be specific and technical.`;
 
   try {
-    const completion = await groq.chat.completions.create({
-      model: 'llama3-70b-8192',
+    const completion = await createGroqCompletion({
       max_tokens: 200,
       messages: [{ role: 'user', content: prompt }],
     });
 
-    const content = completion.choices[0]?.message?.content;
-    if (typeof content === 'string' && content.trim()) {
-      return content.trim();
+    if (completion.content.trim()) {
+      return completion.content;
     }
   } catch (error) {
     console.error('Error generating interview question:', error);
@@ -97,15 +91,13 @@ Provide:
 Format: FEEDBACK: [feedback] | SCORE: [score]`;
 
   try {
-    const completion = await groq.chat.completions.create({
-      model: 'llama3-70b-8192',
+    const completion = await createGroqCompletion({
       max_tokens: 300,
       messages: [{ role: 'user', content: prompt }],
     });
 
-    const content = completion.choices[0]?.message?.content;
-    if (typeof content === 'string') {
-      const text = content;
+    if (completion.content) {
+      const text = completion.content;
       const feedbackMatch = text.match(/FEEDBACK:\s*(.+?)\s*\|/);
       const scoreMatch = text.match(/SCORE:\s*(\d+)/);
 
@@ -128,6 +120,20 @@ export async function POST(request: Request) {
   try {
     const { topic, difficulty, action, previousQuestion, answer } =
       (await request.json()) as InterviewRequest;
+
+    if (!hasGroqApiKey()) {
+      const fallbackQuestion = INTERVIEW_QUESTIONS[topic]?.[difficulty]?.[0] || 'Tell me about your experience with AI systems.';
+      if (action === 'start') {
+        return Response.json({ question: fallbackQuestion });
+      }
+      if (action === 'answer' && previousQuestion && answer) {
+        return Response.json({
+          feedback: 'Good response. Add more detail on tradeoffs, latency, and evaluation metrics.',
+          score: 70,
+          nextQuestion: fallbackQuestion,
+        });
+      }
+    }
 
     if (action === 'start') {
       const question = await generateInterviewQuestion(topic, difficulty);

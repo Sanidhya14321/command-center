@@ -1,8 +1,4 @@
-import { Groq } from 'groq-sdk';
-
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
-});
+import { createGroqCompletion, hasGroqApiKey } from '@/lib/groqFallback';
 
 interface RecommendationRequest {
   useCase: string;
@@ -90,16 +86,12 @@ Return ONLY valid JSON (no markdown, no extra text) with this structure:
 }`;
 
   try {
-    const completion = await groq.chat.completions.create({
-      model: 'llama3-70b-8192',
+    const completion = await createGroqCompletion({
       max_tokens: 1024,
       messages: [{ role: 'user', content: prompt }],
     });
 
-    const content = completion.choices[0]?.message?.content;
-    if (typeof content !== 'string') throw new Error('Invalid response type');
-
-    return JSON.parse(content) as StackResult;
+    return JSON.parse(completion.content) as StackResult;
   } catch {
     throw new Error('Failed to generate recommendation with Groq');
   }
@@ -115,7 +107,7 @@ export async function POST(request: Request) {
     }
 
     // Fall back to Groq if available
-    if (process.env.GROQ_API_KEY) {
+    if (hasGroqApiKey()) {
       const recommendation = await generateRecommendationWithGroq(useCase, scale, latency);
       return Response.json(recommendation);
     }

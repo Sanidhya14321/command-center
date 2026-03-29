@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import Groq from "groq-sdk";
+import { createGroqCompletion, hasGroqApiKey } from "@/lib/groqFallback";
 
 type RawNewsItem = {
   title?: string;
@@ -100,15 +100,12 @@ function categorizeSignal(text: string): SignalItem['category'] {
 }
 
 async function generateWhyItMatters(title: string, summary: string): Promise<string> {
-  if (!process.env.GROQ_API_KEY) {
+  if (!hasGroqApiKey()) {
     return 'Analyze this signal to understand its business and technical impact.';
   }
 
-  const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-
   try {
-    const completion = await groq.chat.completions.create({
-      model: 'llama3-70b-8192',
+    const completion = await createGroqCompletion({
       max_tokens: 80,
       temperature: 0.3,
       messages: [
@@ -123,23 +120,20 @@ async function generateWhyItMatters(title: string, summary: string): Promise<str
       ],
     });
 
-    return completion.choices[0]?.message?.content?.trim() || 'Signal relevant for AI engineering practices.';
+    return completion.content || 'Signal relevant for AI engineering practices.';
   } catch {
     return 'Signal relevant for AI engineering practices.';
   }
 }
 async function summarizeWithGroq(items: SignalItem[]): Promise<SignalItem[]> {
-  if (!process.env.GROQ_API_KEY) {
+  if (!hasGroqApiKey()) {
     return items;
   }
-
-  const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
   const summarized = await Promise.all(
     items.map(async (item) => {
       try {
-        const completion = await groq.chat.completions.create({
-          model: "llama3-70b-8192",
+        const completion = await createGroqCompletion({
           max_tokens: 120,
           temperature: 0.2,
           messages: [
@@ -155,7 +149,7 @@ async function summarizeWithGroq(items: SignalItem[]): Promise<SignalItem[]> {
           ],
         });
 
-        const summary = completion.choices[0]?.message?.content?.trim();
+        const summary = completion.content?.trim();
         const whyItMatters = await generateWhyItMatters(item.title, summary || item.summary);
         return {
           ...item,
