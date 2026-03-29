@@ -62,3 +62,28 @@ jobs:
           AGENT_ENABLE_DELAY: "false"
           AGENT_STRICT_MODE: "false"
         run: npm run agent:run
+
+      - name: Fallback maintenance commit (no Groq key)
+        if: steps.secret_check.outputs.run_agent == 'false'
+        run: |
+          mkdir -p .github
+          touch .github/agent-heartbeat.log
+
+          LAST_DATE="$(tail -n 1 .github/agent-heartbeat.log | cut -d' ' -f1 || true)"
+          TODAY="$(date -u +%Y-%m-%d)"
+
+          if [ "$LAST_DATE" = "$TODAY" ]; then
+            echo "Heartbeat already recorded today. No fallback commit needed."
+            exit 0
+          fi
+
+          echo "${TODAY} missing GROQ_API_KEY -> maintenance heartbeat" >> .github/agent-heartbeat.log
+
+          git add .github/agent-heartbeat.log
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+
+          git commit -m "chore(agent): daily heartbeat without Groq key"
+          git push origin "${GITHUB_REF_NAME}"
