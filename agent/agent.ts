@@ -81,7 +81,7 @@ async function run(): Promise<void> {
     mode,
     graphSummary: graph.summary,
     memorySummary: summarizeMemory(memory),
-    requiredFocus: "AI engineering docs quality, system design UX, API resilience, observability",
+    requiredFocus: "AI engineering docs quality, system design UX, failure mode explorer depth, API resilience, observability",
   });
 
   await logEvent("INFO", "Planner decision", {

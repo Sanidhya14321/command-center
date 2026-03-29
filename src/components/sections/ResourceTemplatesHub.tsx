@@ -35,7 +35,7 @@ export function ResourceTemplatesHub({ sectionId = "resources-templates" }: { se
           <Link
             key={resource.title}
             href={resource.href}
-            className="surface-muted p-4 transition hover:border-[var(--m3-border-strong)]"
+            className="surface-muted p-4 transition hover:border-[var(--m3-outline-variant)]"
           >
             <div className="mb-3 flex items-center gap-2 text-[var(--m3-on-surface-variant)]">
               {resource.icon}

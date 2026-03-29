@@ -54,9 +54,20 @@ export async function buildProjectGraph(): Promise<ProjectGraph> {
     .slice(0, 30)
     .map((n) => n.path);
 
+  const priorityTargets = [
+    "src/components/sections/FailureModeExplorer.tsx",
+    "src/components/sections/SystemDesignSimulator.tsx",
+    "src/components/sections/InteractiveAgent.tsx",
+    "src/components/sections/InterviewModeAgent.tsx",
+  ];
+
+  const mergedCandidates = Array.from(new Set([...priorityTargets, ...candidateFiles])).filter((filePath) =>
+    nodes.some((n) => n.path === filePath),
+  );
+
   return {
     nodes,
     summary: `pages=${pages}, components=${components}, apis=${apis}, total=${nodes.length}`,
-    candidateFiles,
+    candidateFiles: mergedCandidates,
   };
 }

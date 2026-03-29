@@ -110,6 +110,7 @@ body {
   line-height: 1.6;
   color: var(--text);
   background: var(--bg);
+  transition: background-color 180ms ease, color 180ms ease;
 }
 
 h1,
@@ -186,6 +187,19 @@ select:focus-visible {
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--surface-muted);
+}
+
+.m3-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.grid-overlay {
+  background-image:
+    linear-gradient(rgba(0, 0, 0, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.03) 1px, transparent 1px);
+  background-size: 28px 28px;
 }
 
 .skeleton {

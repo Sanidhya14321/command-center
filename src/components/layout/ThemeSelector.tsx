@@ -20,7 +20,7 @@ export const ThemeSelector = () => {
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 rounded-lg border border-m3-outline px-3 py-2 text-sm hover:bg-m3-surface-container transition-colors"
+        className="flex items-center gap-2 rounded-md border border-[var(--m3-outline)] bg-[var(--m3-surface-container)] px-3 py-2 text-sm hover:bg-[var(--m3-surface-container-high)]"
         title="Switch theme"
         aria-label="Theme selector"
       >
@@ -29,8 +29,8 @@ export const ThemeSelector = () => {
       </button>
 
       {isOpen && (
-        <div className="absolute top-full right-0 mt-2 w-56 bg-m3-surface-container rounded-xl border border-m3-outline z-50 p-2">
-          <p className="px-2 py-1 text-xs font-semibold text-m3-on-surface-variant uppercase tracking-wider">
+        <div className="absolute top-full right-0 z-50 mt-2 w-56 rounded-md border border-[var(--m3-outline)] bg-[var(--m3-surface-container)] p-2">
+          <p className="px-2 py-1 text-xs font-semibold uppercase tracking-wider text-[var(--m3-on-surface-variant)]">
             Themes
           </p>
           <div className="grid gap-1">
@@ -43,8 +43,8 @@ export const ThemeSelector = () => {
                 }}
                 className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all ${
                   theme === value
-                    ? 'bg-m3-primary text-m3-on-primary font-semibold'
-                    : 'hover:bg-m3-surface-container-high text-m3-on-surface'
+                    ? 'bg-[var(--m3-primary)] text-[var(--m3-on-primary)] font-semibold'
+                    : 'text-[var(--m3-on-surface)] hover:bg-[var(--m3-surface-container-high)]'
                 }`}
               >
                 {icon}

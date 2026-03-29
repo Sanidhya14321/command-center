@@ -41,6 +41,7 @@ jobs:
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           NEWS_API_KEY: ${{ secrets.NEWS_API_KEY }}
+          MODEL: ${{ vars.MODEL }}
           PRIMARY_MODEL: ${{ vars.PRIMARY_MODEL }}
           FALLBACK_MODEL: ${{ vars.FALLBACK_MODEL }}
           SAFE_MODEL: ${{ vars.SAFE_MODEL }}

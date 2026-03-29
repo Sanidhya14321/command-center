@@ -11,9 +11,9 @@ type CalloutProps = {
 };
 
 const variantStyles: Record<CalloutVariant, string> = {
-  info: "border-[var(--m3-primary)]/45 bg-[var(--m3-primary)]/10 text-[var(--m3-on-surface)]",
-  success: "border-emerald-400/40 bg-emerald-400/10 text-[var(--m3-on-surface)]",
-  warning: "border-amber-400/45 bg-amber-300/10 text-[var(--m3-on-surface)]",
+  info: "border-[var(--m3-primary)]/45 bg-[var(--m3-primary)]/8 text-[var(--m3-on-surface)]",
+  success: "border-emerald-400/45 bg-emerald-400/8 text-[var(--m3-on-surface)]",
+  warning: "border-amber-400/45 bg-amber-300/8 text-[var(--m3-on-surface)]",
 };
 
 const iconMap = {
@@ -24,7 +24,7 @@ const iconMap = {
 
 export function Callout({ title, children, variant = "info" }: CalloutProps) {
   return (
-    <div className={cn("rounded-2xl border p-4", variantStyles[variant])}>
+    <div className={cn("rounded-md border p-4", variantStyles[variant])}>
       <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
         {iconMap[variant]}
         <span>{title}</span>
