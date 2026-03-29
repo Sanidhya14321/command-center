@@ -90,17 +90,16 @@ Return ONLY valid JSON (no markdown, no extra text) with this structure:
 }`;
 
   try {
-    const message = await groq.messages.create({
+    const completion = await groq.chat.completions.create({
       model: 'llama3-70b-8192',
       max_tokens: 1024,
       messages: [{ role: 'user', content: prompt }],
-      response_format: { type: 'json_object' },
     });
 
-    const content = message.content[0];
-    if (content.type !== 'text') throw new Error('Invalid response type');
+    const content = completion.choices[0]?.message?.content;
+    if (typeof content !== 'string') throw new Error('Invalid response type');
 
-    return JSON.parse(content.text) as StackResult;
+    return JSON.parse(content) as StackResult;
   } catch {
     throw new Error('Failed to generate recommendation with Groq');
   }

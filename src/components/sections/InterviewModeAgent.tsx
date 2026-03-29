@@ -19,6 +19,12 @@ interface InterviewSession {
   questionCount: number;
 }
 
+interface InterviewAnswerResponse {
+  feedback: string;
+  score: number;
+  nextQuestion?: string;
+}
+
 const INTERVIEW_TOPICS = [
   { value: 'rag', label: '🔍 RAG Systems', difficulty: ['mid', 'senior'] },
   { value: 'agents', label: '🤖 AI Agents', difficulty: ['mid', 'senior'] },
@@ -98,19 +104,18 @@ export function InterviewModeAgent({ sectionId = 'interview-mode' }: { sectionId
       });
 
       if (response.ok) {
-        const data = await response.json();
-        const newSession = {
+        const data = (await response.json()) as InterviewAnswerResponse;
+        const feedbackMessage: InterviewMessage = {
+          role: 'interviewer',
+          content: data.feedback,
+          feedback: data.feedback,
+        };
+
+        const newSession: InterviewSession = {
           ...session,
-          messages: [
-            ...newMessages,
-            {
-              role: 'interviewer',
-              content: data.feedback,
-              feedback: data.feedback,
-            },
-          ],
+          messages: [...newMessages, feedbackMessage],
           score: data.score,
-          currentQuestion: data.nextQuestion,
+          currentQuestion: data.nextQuestion || '',
           questionCount: session.questionCount + 1,
         };
 

@@ -29,7 +29,6 @@ const COMPONENT_TYPES = [
 export function SystemDesignSimulator({ sectionId = 'system-simulator' }: { sectionId?: string }) {
   const [components, setComponents] = useState<ArchComponent[]>([]);
   const [connections, setConnections] = useState<Connection[]>([]);
-  const [draggingId, setDraggingId] = useState<string | null>(null);
   const [scale, setScale] = useState(1);
   const [selectedFrom, setSelectedFrom] = useState<string | null>(null);
 
@@ -37,12 +36,16 @@ export function SystemDesignSimulator({ sectionId = 'system-simulator' }: { sect
     const componentType = COMPONENT_TYPES.find((c) => c.type === type);
     if (!componentType) return;
 
+    const index = components.length;
+    const col = index % 4;
+    const row = Math.floor(index / 4);
+
     const newComponent: ArchComponent = {
-      id: `${type}-${Date.now()}`,
+      id: `${type}-${index + 1}`,
       type: type as ArchComponent['type'],
       label: `${componentType.label} ${components.filter((c) => c.type === type).length + 1}`,
-      x: Math.random() * 300,
-      y: Math.random() * 200,
+      x: 24 + col * 130,
+      y: 24 + row * 110,
       color: componentType.color,
     };
 
@@ -232,7 +235,6 @@ export function SystemDesignSimulator({ sectionId = 'system-simulator' }: { sect
                       initial={{ scale: 0, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
                       exit={{ scale: 0, opacity: 0 }}
-                      onMouseDown={() => setDraggingId(comp.id)}
                       onClick={() => handleComponentClick(comp.id)}
                       className={`w-24 py-3 px-2 rounded-lg border-2 transition cursor-pointer text-center text-xs font-semibold ${
                         selectedFrom === comp.id

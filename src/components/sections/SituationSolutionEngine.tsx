@@ -1,8 +1,8 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Check, AlertCircle, TrendingUp, Clock, Database } from 'lucide-react';
+import { Check, AlertCircle, TrendingUp, Clock } from 'lucide-react';
 
 interface StackRecommendation {
   name: string;

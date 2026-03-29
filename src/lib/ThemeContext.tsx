@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 
 export type ThemeType = 'dark' | 'light' | 'ocean' | 'forest' | 'sunset' | 'cyberpunk';
 

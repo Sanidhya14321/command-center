@@ -13,13 +13,6 @@ interface InterviewRequest {
   messages?: Array<{ role: string; content: string }>;
 }
 
-interface InterviewResponse {
-  question?: string;
-  nextQuestion?: string;
-  feedback?: string;
-  score?: number;
-}
-
 const INTERVIEW_QUESTIONS: Record<string, Record<string, string[]>> = {
   rag: {
     junior: [
@@ -57,12 +50,6 @@ const INTERVIEW_QUESTIONS: Record<string, Record<string, string[]>> = {
   },
 };
 
-const CURATED_FEEDBACK: Record<string, Record<string, string>> = {
-  'good understanding': 'Excellent point - shows you understand the core concept.',
-  'needs depth': 'Valid approach, but consider the tradeoffs at scale.',
-  'incomplete': 'Right direction - think about edge cases and failure modes.',
-};
-
 async function generateInterviewQuestion(
   topic: string,
   difficulty: string
@@ -75,15 +62,15 @@ async function generateInterviewQuestion(
   const prompt = `Generate a ${difficulty} level interview question about ${topic} for AI engineers. Be specific and technical.`;
 
   try {
-    const message = await groq.messages.create({
+    const completion = await groq.chat.completions.create({
       model: 'llama3-70b-8192',
       max_tokens: 200,
       messages: [{ role: 'user', content: prompt }],
     });
 
-    const content = message.content[0];
-    if (content.type === 'text') {
-      return content.text;
+    const content = completion.choices[0]?.message?.content;
+    if (typeof content === 'string' && content.trim()) {
+      return content.trim();
     }
   } catch (error) {
     console.error('Error generating interview question:', error);
@@ -110,15 +97,15 @@ Provide:
 Format: FEEDBACK: [feedback] | SCORE: [score]`;
 
   try {
-    const message = await groq.messages.create({
+    const completion = await groq.chat.completions.create({
       model: 'llama3-70b-8192',
       max_tokens: 300,
       messages: [{ role: 'user', content: prompt }],
     });
 
-    const content = message.content[0];
-    if (content.type === 'text') {
-      const text = content.text;
+    const content = completion.choices[0]?.message?.content;
+    if (typeof content === 'string') {
+      const text = content;
       const feedbackMatch = text.match(/FEEDBACK:\s*(.+?)\s*\|/);
       const scoreMatch = text.match(/SCORE:\s*(\d+)/);
 

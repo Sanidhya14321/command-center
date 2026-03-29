@@ -45,7 +45,7 @@ const fallbackSignals: SignalItem[] = [
     summary:
       "Teams are shifting from prompt-only iteration toward eval gates and regression suites to reduce silent quality decay in production assistants.",
     publishedAt: new Date(Date.now() - 1000 * 60 * 48).toISOString(),
-    relevanceScore: 0.94,
+    relevanceScore: 94,
     tags: ["evals", "deployment", "quality"],
     category: "Evaluation",
     whyItMatters: "Production stability depends on quantified quality gates, not intuition. Evals catch regressions before users do.",
@@ -58,7 +58,7 @@ const fallbackSignals: SignalItem[] = [
     summary:
       "High-performing agent systems separate planning from tool execution, adding policy checks and telemetry checkpoints before side effects.",
     publishedAt: new Date(Date.now() - 1000 * 60 * 160).toISOString(),
-    relevanceScore: 0.89,
+    relevanceScore: 89,
     tags: ["agents", "tools", "safety"],
     category: "Agents",
     whyItMatters: "Deterministic tool layers reduce hallucinated API calls and enable observability. This is the difference between demos and production.",
@@ -71,7 +71,7 @@ const fallbackSignals: SignalItem[] = [
     summary:
       "Organizations are combining sparse and dense retrieval with rerankers to improve grounding precision while preserving low latency targets.",
     publishedAt: new Date(Date.now() - 1000 * 60 * 300).toISOString(),
-    relevanceScore: 0.87,
+    relevanceScore: 87,
     tags: ["rag", "retrieval", "infra"],
     category: "Infra",
     whyItMatters: "Hybrid retrieval + reranking achieves 15-30% less hallucination with minimal latency cost. Essential for grounded reasoning at scale.",
@@ -81,7 +81,7 @@ const fallbackSignals: SignalItem[] = [
 function relevanceForText(text: string) {
   const lower = text.toLowerCase();
   const hitCount = KEYWORDS.reduce((count, keyword) => (lower.includes(keyword) ? count + 1 : count), 0);
-  return Math.min(0.99, 0.45 + hitCount * 0.08);
+  return Math.min(99, 45 + hitCount * 8);
 }
 
 function extractTags(text: string) {
@@ -156,9 +156,11 @@ async function summarizeWithGroq(items: SignalItem[]): Promise<SignalItem[]> {
         });
 
         const summary = completion.choices[0]?.message?.content?.trim();
+        const whyItMatters = await generateWhyItMatters(item.title, summary || item.summary);
         return {
           ...item,
           summary: summary || item.summary,
+          whyItMatters,
         };
       } catch {
         return item;
@@ -210,7 +212,7 @@ export async function GET() {
               whyItMatters: undefined,
         } satisfies SignalItem;
       })
-      .filter((item) => item.relevanceScore >= 0.61)
+      .filter((item) => item.relevanceScore >= 61)
       .sort((a, b) => b.relevanceScore - a.relevanceScore)
       .slice(0, 8);
 

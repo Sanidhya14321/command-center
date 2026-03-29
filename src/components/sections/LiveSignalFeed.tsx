@@ -124,7 +124,6 @@ export function LiveSignalFeed() {
                         </span>
                       </div>
                     </div>
-                    </span>
                   </div>
                   <h3 className="text-base font-semibold text-[var(--m3-on-surface)] md:text-lg">{item.title}</h3>
                   <p className="mt-2 text-sm leading-6 text-[var(--m3-on-surface-variant)]">{item.summary}</p>
