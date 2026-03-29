@@ -23,11 +23,14 @@ interface InterviewMessage {
 interface InterviewSession {
   topic: string;
   difficulty: 'junior' | 'mid' | 'senior';
+  personality: InterviewPersonality;
   score: number;
   messages: InterviewMessage[];
   currentQuestion: string;
   questionCount: number;
 }
+
+type InterviewPersonality = 'faang' | 'startup' | 'principal';
 
 interface InterviewAnswerResponse {
   feedback: string;
@@ -46,10 +49,17 @@ const INTERVIEW_TOPICS = [
 
 const MAX_QUESTIONS = 5;
 
+const PERSONALITY_MODES: Array<{ id: InterviewPersonality; label: string; description: string }> = [
+  { id: 'faang', label: 'FAANG-style', description: 'Strong on scale, systems, and signal-to-noise in communication.' },
+  { id: 'startup', label: 'Startup-style', description: 'Bias for speed, ownership, pragmatism, and MVP tradeoffs.' },
+  { id: 'principal', label: 'Principal-level', description: 'Org-wide architecture, strategy, and risk leadership depth.' },
+];
+
 export function InterviewModeAgent({ sectionId = 'interview-mode' }: { sectionId?: string }) {
   const [session, setSession] = useState<InterviewSession | null>(null);
   const [selectedTopic, setSelectedTopic] = useState('');
   const [selectedDifficulty, setSelectedDifficulty] = useState<'junior' | 'mid' | 'senior'>('mid');
+  const [selectedPersonality, setSelectedPersonality] = useState<InterviewPersonality>('faang');
   const [inputAnswer, setInputAnswer] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesRef = useRef<HTMLDivElement | null>(null);
@@ -82,6 +92,7 @@ export function InterviewModeAgent({ sectionId = 'interview-mode' }: { sectionId
         body: JSON.stringify({
           topic: selectedTopic,
           difficulty: selectedDifficulty,
+          personality: selectedPersonality,
           action: 'start',
         }),
       });
@@ -91,6 +102,7 @@ export function InterviewModeAgent({ sectionId = 'interview-mode' }: { sectionId
         setSession({
           topic: selectedTopic,
           difficulty: selectedDifficulty,
+          personality: selectedPersonality,
           score: 0,
           messages: [
             {
@@ -126,6 +138,7 @@ export function InterviewModeAgent({ sectionId = 'interview-mode' }: { sectionId
         body: JSON.stringify({
           topic: session.topic,
           difficulty: session.difficulty,
+          personality: session.personality,
           action: 'answer',
           previousQuestion: session.currentQuestion,
           answer: inputAnswer,
@@ -240,6 +253,30 @@ export function InterviewModeAgent({ sectionId = 'interview-mode' }: { sectionId
             </div>
 
             {/* Start Button */}
+            <div className="space-y-3">
+              <label className="flex items-center gap-2 text-sm font-semibold text-[var(--m3-on-surface)]">
+                <Bot className="size-4" />
+                Interview Personality
+              </label>
+              <div className="grid gap-2 md:grid-cols-3">
+                {PERSONALITY_MODES.map((mode) => (
+                  <button
+                    key={mode.id}
+                    type="button"
+                    onClick={() => setSelectedPersonality(mode.id)}
+                    className={`rounded-lg border px-3 py-3 text-left transition ${
+                      selectedPersonality === mode.id
+                        ? 'border-[var(--m3-primary)] bg-[var(--m3-primary)] text-[var(--m3-on-primary)]'
+                        : 'border-[var(--m3-outline)]/40 bg-[var(--m3-surface-container-high)] text-[var(--m3-on-surface-variant)]'
+                    }`}
+                  >
+                    <p className="text-sm font-semibold">{mode.label}</p>
+                    <p className="mt-1 text-xs opacity-80">{mode.description}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <button
               onClick={startInterview}
               disabled={!selectedTopic || isLoading}
@@ -280,6 +317,9 @@ export function InterviewModeAgent({ sectionId = 'interview-mode' }: { sectionId
             </h2>
             <p className="text-sm text-[var(--m3-on-surface-variant)]">
               Question {session.questionCount} of {MAX_QUESTIONS} | Score: {session.score}/100
+            </p>
+            <p className="mt-1 text-xs text-[var(--m3-on-surface-variant)]">
+              Mode: {PERSONALITY_MODES.find((item) => item.id === session.personality)?.label}
             </p>
             <div className="mt-2 h-2 w-52 overflow-hidden rounded-full bg-[var(--m3-surface-container-high)]">
               <div

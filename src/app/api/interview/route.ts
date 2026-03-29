@@ -3,6 +3,7 @@ import { createGroqCompletion, hasGroqApiKey } from '@/lib/groqFallback';
 interface InterviewRequest {
   topic: string;
   difficulty: string;
+  personality?: 'faang' | 'startup' | 'principal';
   action: 'start' | 'answer';
   previousQuestion?: string;
   answer?: string;
@@ -55,16 +56,21 @@ const TOPIC_GUIDES: Record<string, string> = {
   finetuning: 'dataset curation, eval-driven tuning, drift monitoring, and post-deployment validation',
 };
 
+const PERSONALITY_GUIDES: Record<'faang' | 'startup' | 'principal', string> = {
+  faang:
+    'Ask for clear decomposition, scale assumptions, reliability details, and measurable tradeoffs. Bar is high for structured communication.',
+  startup:
+    'Prioritize pragmatic choices, lean architecture, build-vs-buy decisions, and fast iteration under resource constraints.',
+  principal:
+    'Focus on cross-team architecture strategy, long-term maintainability, governance, and executive-level technical decisions.',
+};
+
 async function generateInterviewQuestion(
   topic: string,
   difficulty: string,
+  personality: 'faang' | 'startup' | 'principal',
   previousMessages: Array<{ role: string; content: string }> = []
 ): Promise<string> {
-  if (INTERVIEW_QUESTIONS[topic]?.[difficulty]) {
-    const questions = INTERVIEW_QUESTIONS[topic][difficulty];
-    return questions[Math.floor(Math.random() * questions.length)];
-  }
-
   const recentContext = previousMessages
     .slice(-6)
     .map((m) => `${m.role}: ${m.content}`)
@@ -78,6 +84,7 @@ Rules:
 - Scenario-based, concrete, and production-relevant.
 - Avoid repeating earlier questions.
 - Keep to 1-2 sentences.
+Interview style: ${PERSONALITY_GUIDES[personality]}.
 
 Recent interview context:
 ${recentContext || 'No previous context'}
@@ -97,14 +104,20 @@ Return plain text only.`;
     console.error('Error generating interview question:', error);
   }
 
-  return INTERVIEW_QUESTIONS[topic]?.[difficulty]?.[0] || 'Tell me about your experience with AI systems.';
+  if (INTERVIEW_QUESTIONS[topic]?.[difficulty]) {
+    const questions = INTERVIEW_QUESTIONS[topic][difficulty];
+    return questions[Math.floor(Math.random() * questions.length)];
+  }
+
+  return 'Tell me about your experience with AI systems.';
 }
 
 async function evaluateAnswer(
   question: string,
   answer: string,
   difficulty: string,
-  topic: string
+  topic: string,
+  personality: 'faang' | 'startup' | 'principal'
 ): Promise<{ feedback: string; score: number }> {
   const prompt = `You are an AI engineering interviewer evaluating a candidate's answer.
 
@@ -112,6 +125,7 @@ Question: ${question}
 Answer: ${answer}
 Difficulty: ${difficulty}
 Topic: ${topic}
+Personality mode: ${personality}
 
 Return JSON only using this schema:
 {
@@ -125,7 +139,10 @@ Scoring rubric:
 - Technical correctness and depth: 35
 - Production constraints and tradeoffs: 25
 - Reliability and observability thinking: 20
-- Communication clarity: 20`;
+- Communication clarity: 20
+
+Interviewer behavior guidance:
+${PERSONALITY_GUIDES[personality]}`;
 
   try {
     const completion = await createGroqCompletion({
@@ -163,7 +180,7 @@ Scoring rubric:
 
 export async function POST(request: Request) {
   try {
-    const { topic, difficulty, action, previousQuestion, answer, messages } =
+    const { topic, difficulty, personality = 'faang', action, previousQuestion, answer, messages } =
       (await request.json()) as InterviewRequest;
 
     if (!hasGroqApiKey()) {
@@ -181,13 +198,13 @@ export async function POST(request: Request) {
     }
 
     if (action === 'start') {
-      const question = await generateInterviewQuestion(topic, difficulty, messages ?? []);
+      const question = await generateInterviewQuestion(topic, difficulty, personality, messages ?? []);
       return Response.json({ question });
     }
 
     if (action === 'answer' && previousQuestion && answer) {
-      const { feedback, score } = await evaluateAnswer(previousQuestion, answer, difficulty, topic);
-      const nextQuestion = await generateInterviewQuestion(topic, difficulty, messages ?? []);
+      const { feedback, score } = await evaluateAnswer(previousQuestion, answer, difficulty, topic, personality);
+      const nextQuestion = await generateInterviewQuestion(topic, difficulty, personality, messages ?? []);
 
       return Response.json({
         feedback,

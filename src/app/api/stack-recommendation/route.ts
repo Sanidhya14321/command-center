@@ -15,6 +15,7 @@ interface StackRecommendation {
   tradeoffs: string;
   cost: string;
   difficulty: string;
+  freeTierUse: string;
 }
 
 interface StackResult {
@@ -33,6 +34,7 @@ const CURATED_RECOMMENDATIONS: Record<string, Record<string, Record<string, Stac
           tradeoffs: 'Low cost, single-server deployment. Trade-off: limited concurrency.',
           cost: '$0-50/month',
           difficulty: 'Easy',
+          freeTierUse: 'Use Groq free-tier models, Render or Railway free web service, SQLite, and Upstash Redis free tier.',
         },
         alternatives: [
           {
@@ -41,6 +43,7 @@ const CURATED_RECOMMENDATIONS: Record<string, Record<string, Record<string, Stac
             tradeoffs: 'Higher cost but managed infrastructure. Better for rapid iteration.',
             cost: '$100-500/month',
             difficulty: 'Easy',
+            freeTierUse: 'Use Vercel hobby tier with Postgres free tier. Limit token-heavy routes or cache aggressively.',
           },
           {
             name: 'Claude API + Lambda',
@@ -48,6 +51,7 @@ const CURATED_RECOMMENDATIONS: Record<string, Record<string, Record<string, Stac
             tradeoffs: 'Serverless with per-invocation pricing. Better for variable load.',
             cost: '$50-200/month',
             difficulty: 'Medium',
+            freeTierUse: 'Use AWS Lambda and DynamoDB free tier for low traffic. Add hard limits to avoid overages.',
           },
         ],
         thinkingProcess: `For a real-time chatbot at startup scale:
@@ -93,10 +97,11 @@ Return JSON with this exact schema:
     "components": ["component1", "component2"],
     "tradeoffs": "2-3 sentence tradeoff explanation",
     "cost": "monthly estimate range",
-    "difficulty": "Easy" | "Medium" | "Hard"
+    "difficulty": "Easy" | "Medium" | "Hard",
+    "freeTierUse": "what can be used in free tier for this stack"
   },
   "alternatives": [
-    {"name": "...", "components": [...], "tradeoffs": "...", "cost": "...", "difficulty": "..."}
+    {"name": "...", "components": [...], "tradeoffs": "...", "cost": "...", "difficulty": "...", "freeTierUse": "..."}
   ],
   "thinkingProcess": "Step 1 ...\\nStep 2 ...\\nStep 3 ..."
 }`;
@@ -123,8 +128,18 @@ Return JSON with this exact schema:
         tradeoffs: parsed.recommended.tradeoffs ?? 'Tradeoff details unavailable.',
         cost: parsed.recommended.cost ?? 'Cost not specified',
         difficulty: parsed.recommended.difficulty ?? 'Medium',
+        freeTierUse: parsed.recommended.freeTierUse ?? 'No free-tier note provided.',
       },
-      alternatives: Array.isArray(parsed.alternatives) ? parsed.alternatives : [],
+      alternatives: Array.isArray(parsed.alternatives)
+        ? parsed.alternatives.map((item) => ({
+            name: item.name ?? 'Alternative Stack',
+            components: Array.isArray(item.components) ? item.components : [],
+            tradeoffs: item.tradeoffs ?? 'Tradeoff details unavailable.',
+            cost: item.cost ?? 'Cost not specified',
+            difficulty: item.difficulty ?? 'Medium',
+            freeTierUse: item.freeTierUse ?? 'No free-tier note provided.',
+          }))
+        : [],
       thinkingProcess: parsed.thinkingProcess ?? 'Reasoning unavailable from model response.',
     };
   } catch {
@@ -160,6 +175,7 @@ export async function POST(request: Request) {
         tradeoffs: 'Contact us for personalized recommendation',
         cost: 'Depends on configuration',
         difficulty: 'Medium',
+        freeTierUse: 'Start with hobby tiers of hosting, managed Postgres free plans, and strict request caps.',
       },
       alternatives: [],
       thinkingProcess: 'Default recommendation - enable Groq API for personalized suggestions',

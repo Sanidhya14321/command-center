@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   ArrowRight,
@@ -49,6 +49,13 @@ type DragState = {
   id: string;
   offsetX: number;
   offsetY: number;
+} | null;
+
+type PanState = {
+  pointerX: number;
+  pointerY: number;
+  scrollLeft: number;
+  scrollTop: number;
 } | null;
 
 const COMPONENT_TYPES: Array<{ type: ComponentType; label: string; icon: React.ReactNode }> = [
@@ -112,8 +119,24 @@ export function SystemDesignSimulator({ sectionId = 'system-simulator' }: { sect
   const [selectedFrom, setSelectedFrom] = useState<string | null>(null);
   const [selectedConnection, setSelectedConnection] = useState<string | null>(null);
   const [dragging, setDragging] = useState<DragState>(null);
+  const [panning, setPanning] = useState<PanState>(null);
   const [copied, setCopied] = useState(false);
+  const [viewport, setViewport] = useState({ left: 0, top: 0, width: 0, height: 0 });
   const canvasRef = useRef<HTMLDivElement | null>(null);
+
+  const syncViewport = () => {
+    if (!canvasRef.current) return;
+    setViewport({
+      left: canvasRef.current.scrollLeft,
+      top: canvasRef.current.scrollTop,
+      width: canvasRef.current.clientWidth,
+      height: canvasRef.current.clientHeight,
+    });
+  };
+
+  useEffect(() => {
+    syncViewport();
+  }, [scale, components.length, connections.length]);
 
   const addComponent = (type: ComponentType) => {
     const componentType = COMPONENT_TYPES.find((c) => c.type === type);
@@ -242,8 +265,36 @@ export function SystemDesignSimulator({ sectionId = 'system-simulator' }: { sect
     (event.currentTarget as HTMLDivElement).setPointerCapture(event.pointerId);
   };
 
+  const beginPan = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!canvasRef.current) return;
+
+    const target = event.target as Element;
+    if (target.closest('[data-node-card="true"]') || target.closest('[data-edge="true"]')) {
+      return;
+    }
+
+    setPanning({
+      pointerX: event.clientX,
+      pointerY: event.clientY,
+      scrollLeft: canvasRef.current.scrollLeft,
+      scrollTop: canvasRef.current.scrollTop,
+    });
+    (event.currentTarget as HTMLDivElement).setPointerCapture(event.pointerId);
+  };
+
   const handleCanvasPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (!dragging || !canvasRef.current) return;
+    if (!canvasRef.current) return;
+
+    if (panning) {
+      const deltaX = event.clientX - panning.pointerX;
+      const deltaY = event.clientY - panning.pointerY;
+      canvasRef.current.scrollLeft = panning.scrollLeft - deltaX;
+      canvasRef.current.scrollTop = panning.scrollTop - deltaY;
+      syncViewport();
+      return;
+    }
+
+    if (!dragging) return;
 
     const rect = canvasRef.current.getBoundingClientRect();
     const pointerX = (event.clientX - rect.left + canvasRef.current.scrollLeft) / scale;
@@ -259,9 +310,13 @@ export function SystemDesignSimulator({ sectionId = 'system-simulator' }: { sect
         };
       }),
     );
+    syncViewport();
   };
 
-  const endDrag = () => setDragging(null);
+  const endPointerInteraction = () => {
+    setDragging(null);
+    setPanning(null);
+  };
 
   const bottlenecks = useMemo(() => {
     const analysis: string[] = [];
@@ -322,6 +377,43 @@ export function SystemDesignSimulator({ sectionId = 'system-simulator' }: { sect
     if (ratio < 80) return `Moderate connectivity (${ratio}%). Review isolated components before deployment.`;
     return `High connectivity (${ratio}%). Topology is well-linked for a draft design.`;
   }, [components, connections]);
+
+  const minimap = useMemo(() => {
+    const miniWidth = 220;
+    const miniHeight = 140;
+    const worldWidth = CANVAS_W * scale;
+    const worldHeight = CANVAS_H * scale;
+    const ratioX = miniWidth / worldWidth;
+    const ratioY = miniHeight / worldHeight;
+
+    return {
+      miniWidth,
+      miniHeight,
+      ratioX,
+      ratioY,
+      viewportRect: {
+        x: viewport.left * ratioX,
+        y: viewport.top * ratioY,
+        w: Math.max(20, viewport.width * ratioX),
+        h: Math.max(16, viewport.height * ratioY),
+      },
+    };
+  }, [scale, viewport]);
+
+  const jumpToMiniMapPoint = (event: React.PointerEvent<HTMLButtonElement>) => {
+    if (!canvasRef.current) return;
+
+    const rect = event.currentTarget.getBoundingClientRect();
+    const localX = event.clientX - rect.left;
+    const localY = event.clientY - rect.top;
+
+    const targetLeft = localX / minimap.ratioX - viewport.width / 2;
+    const targetTop = localY / minimap.ratioY - viewport.height / 2;
+
+    canvasRef.current.scrollLeft = clamp(targetLeft, 0, CANVAS_W * scale - viewport.width);
+    canvasRef.current.scrollTop = clamp(targetTop, 0, CANVAS_H * scale - viewport.height);
+    syncViewport();
+  };
 
   const copySummary = async () => {
     const lines = [
@@ -439,10 +531,12 @@ export function SystemDesignSimulator({ sectionId = 'system-simulator' }: { sect
 
           <div
             ref={canvasRef}
-            className="relative h-[420px] overflow-auto"
+            className={`relative h-[420px] overflow-auto ${panning ? 'cursor-grabbing' : 'cursor-grab'}`}
+            onPointerDown={beginPan}
+            onScroll={syncViewport}
             onPointerMove={handleCanvasPointerMove}
-            onPointerUp={endDrag}
-            onPointerCancel={endDrag}
+            onPointerUp={endPointerInteraction}
+            onPointerCancel={endPointerInteraction}
           >
             <div
               className="relative"
@@ -466,6 +560,7 @@ export function SystemDesignSimulator({ sectionId = 'system-simulator' }: { sect
                   return (
                     <g key={edgeKey}>
                       <line
+                        data-edge="true"
                         x1={(fromNode.x + NODE_WIDTH) * scale}
                         y1={(fromNode.y + NODE_HEIGHT / 2) * scale}
                         x2={toNode.x * scale}
@@ -492,6 +587,7 @@ export function SystemDesignSimulator({ sectionId = 'system-simulator' }: { sect
                     animate={{ opacity: 1, y: 0 }}
                   >
                     <div
+                      data-node-card="true"
                       role="button"
                       tabIndex={0}
                       onPointerDown={(e) => beginDrag(e, node)}
@@ -521,6 +617,47 @@ export function SystemDesignSimulator({ sectionId = 'system-simulator' }: { sect
                   </motion.div>
                 );
               })}
+            </div>
+
+            <div className="pointer-events-auto absolute bottom-3 right-3 rounded-lg border border-[var(--m3-outline)] bg-[var(--m3-surface-container)]/95 p-2 backdrop-blur">
+              <p className="mb-1 text-[10px] uppercase tracking-[0.08em] text-[var(--m3-on-surface-variant)]">Minimap</p>
+              <button
+                type="button"
+                onPointerDown={jumpToMiniMapPoint}
+                className="relative block"
+                style={{ width: minimap.miniWidth, height: minimap.miniHeight }}
+                title="Click to pan viewport"
+              >
+                <div
+                  className="absolute inset-0 rounded border border-[var(--m3-outline)]/70"
+                  style={{
+                    backgroundImage:
+                      'linear-gradient(to right, color-mix(in oklab, var(--m3-outline) 20%, transparent) 1px, transparent 1px), linear-gradient(to bottom, color-mix(in oklab, var(--m3-outline) 20%, transparent) 1px, transparent 1px)',
+                    backgroundSize: '16px 16px',
+                  }}
+                />
+                {components.map((node) => (
+                  <div
+                    key={`mini-${node.id}`}
+                    className="absolute rounded-sm bg-[var(--m3-primary)]/80"
+                    style={{
+                      left: node.x * scale * minimap.ratioX,
+                      top: node.y * scale * minimap.ratioY,
+                      width: Math.max(6, NODE_WIDTH * scale * minimap.ratioX),
+                      height: Math.max(4, NODE_HEIGHT * scale * minimap.ratioY),
+                    }}
+                  />
+                ))}
+                <div
+                  className="absolute rounded border border-[var(--m3-accent)] bg-[var(--m3-accent)]/20"
+                  style={{
+                    left: minimap.viewportRect.x,
+                    top: minimap.viewportRect.y,
+                    width: minimap.viewportRect.w,
+                    height: minimap.viewportRect.h,
+                  }}
+                />
+              </button>
             </div>
           </div>
 

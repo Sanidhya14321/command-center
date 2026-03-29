@@ -23,6 +23,7 @@ interface StackRecommendation {
   tradeoffs: string;
   cost: string;
   difficulty: string;
+  freeTierUse: string;
 }
 
 interface StackResult {
@@ -113,6 +114,23 @@ export function SituationSolutionEngine({ sectionId = 'situation-solution' }: { 
         .filter(Boolean) ?? [],
     [result]
   );
+
+  const comparisonRows = useMemo(() => {
+    if (!result) return [];
+
+    return [
+      {
+        ...result.recommended,
+        isWinner: true,
+        whyWon: 'Best alignment with your selected latency, scale, and implementation complexity.',
+      },
+      ...result.alternatives.map((item) => ({
+        ...item,
+        isWinner: false,
+        whyWon: 'Viable option but less optimal for one or more of your selected constraints.',
+      })),
+    ];
+  }, [result]);
 
   return (
     <section id={sectionId} className="space-y-6">
@@ -338,9 +356,59 @@ export function SituationSolutionEngine({ sectionId = 'situation-solution' }: { 
               </div>
 
               <div className="p-3 bg-[var(--m3-surface-container)] rounded-lg">
+                <p className="text-xs font-semibold text-[var(--m3-on-surface-variant)] mb-2">Free-tier plan</p>
+                <p className="text-sm text-[var(--m3-on-surface)]">{result.recommended.freeTierUse}</p>
+              </div>
+
+              <div className="p-3 bg-[var(--m3-surface-container)] rounded-lg">
                 <p className="text-xs font-semibold text-[var(--m3-on-surface-variant)] mb-2">Tradeoffs</p>
                 <p className="text-sm text-[var(--m3-on-surface)]">{result.recommended.tradeoffs}</p>
               </div>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+            className="rounded-[24px] border border-[var(--m3-outline)]/35 bg-[var(--m3-surface-container-high)]/40 p-6"
+          >
+            <h3 className="text-base font-semibold text-[var(--m3-on-surface)]">Why This Stack Won: Comparison Matrix</h3>
+            <p className="mt-1 text-xs text-[var(--m3-on-surface-variant)]">
+              Side-by-side comparison including free-tier paths so you can start without upfront infra cost.
+            </p>
+            <div className="mt-4 overflow-x-auto">
+              <table className="min-w-full border-separate border-spacing-y-2 text-sm">
+                <thead>
+                  <tr className="text-left text-xs uppercase tracking-[0.06em] text-[var(--m3-on-surface-variant)]">
+                    <th className="px-3 py-2">Stack</th>
+                    <th className="px-3 py-2">Cost</th>
+                    <th className="px-3 py-2">Difficulty</th>
+                    <th className="px-3 py-2">Free Tier</th>
+                    <th className="px-3 py-2">Why It Won / Not</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {comparisonRows.map((row) => (
+                    <tr key={row.name} className="bg-[var(--m3-surface-container)]">
+                      <td className="rounded-l-md px-3 py-3 font-semibold text-[var(--m3-on-surface)]">
+                        <div className="flex items-center gap-2">
+                          {row.name}
+                          {row.isWinner ? (
+                            <span className="rounded-full bg-[var(--m3-primary)]/20 px-2 py-0.5 text-[10px] font-semibold uppercase text-[var(--m3-primary)]">
+                              Winner
+                            </span>
+                          ) : null}
+                        </div>
+                      </td>
+                      <td className="px-3 py-3 text-[var(--m3-on-surface-variant)]">{row.cost}</td>
+                      <td className="px-3 py-3 text-[var(--m3-on-surface-variant)]">{row.difficulty}</td>
+                      <td className="px-3 py-3 text-xs leading-5 text-[var(--m3-on-surface-variant)]">{row.freeTierUse}</td>
+                      <td className="rounded-r-md px-3 py-3 text-xs leading-5 text-[var(--m3-on-surface-variant)]">{row.whyWon}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </motion.div>
 
@@ -370,6 +438,9 @@ export function SituationSolutionEngine({ sectionId = 'situation-solution' }: { 
                       </span>
                     ))}
                   </div>
+                  <p className="mb-2 text-xs text-[var(--m3-on-surface-variant)]">
+                    <span className="font-semibold text-[var(--m3-on-surface)]">Free-tier:</span> {alt.freeTierUse}
+                  </p>
                   <p className="text-xs text-[var(--m3-on-surface-variant)]">{alt.tradeoffs}</p>
                 </motion.div>
               ))}
