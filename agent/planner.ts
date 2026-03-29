@@ -12,9 +12,9 @@ export type PlanOutput = {
   mode: AgentMode;
 };
 
-const PRIMARY_MODEL = process.env.PRIMARY_MODEL || "llama3-70b-8192";
-const FALLBACK_MODEL = process.env.FALLBACK_MODEL || "mixtral-8x7b-32768";
-const SAFE_MODEL = process.env.SAFE_MODEL || "llama-3.3-70b-versatile";
+const PRIMARY_MODEL = process.env.MODEL || process.env.PRIMARY_MODEL || "auto";
+const FALLBACK_MODEL = process.env.FALLBACK_MODEL || "llama-3.3-70b-versatile";
+const SAFE_MODEL = process.env.SAFE_MODEL || "mixtral-8x7b-32768";
 const MODEL_CHAIN = Array.from(new Set([PRIMARY_MODEL, FALLBACK_MODEL, SAFE_MODEL]));
 
 function parsePlan(content: string): PlanOutput {

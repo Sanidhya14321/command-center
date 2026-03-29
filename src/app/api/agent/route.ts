@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createGroqCompletion, hasGroqApiKey } from "@/lib/groqFallback";
 
-const MODEL = process.env.PRIMARY_MODEL || "llama3-70b-8192";
+const MODEL = process.env.MODEL || process.env.PRIMARY_MODEL || "auto";
 
 export async function POST(request: Request) {
   try {
