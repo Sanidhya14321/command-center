@@ -110,5 +110,8 @@ export function FailureModeExplorer({ sectionId = "failure-mode-explorer" }: { s
   );
 }
 /* Autonomous Groq component update
-// Add meaningful AI-engineering content here
+// Add AI-engineering content to handle failure modes
+case 'critical':
+case 'warning':
+default:
 */
