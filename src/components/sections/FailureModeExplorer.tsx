@@ -109,13 +109,6 @@ export function FailureModeExplorer({ sectionId = "failure-mode-explorer" }: { s
     </SectionCard>
   );
 }
-/* Autonomous Groq component update
-// AI-engineering content: Emergency recovery attempt
-'Assess system failure',
-'Identify root cause',
-'Implement recovery plan'
-// Render recovery steps
-*/
 import React from 'react';
 
 const FailureModeExplorerContent = () => {
@@ -128,3 +121,6 @@ const FailureModeExplorerContent = () => {
 };
 
 export default FailureModeExplorerContent;
+/* Autonomous Groq component update
+// Add meaningful AI-engineering content here
+*/
