@@ -122,5 +122,6 @@ const FailureModeExplorerContent = () => {
 
 export default FailureModeExplorerContent;
 /* Autonomous Groq component update
-// Add meaningful AI-engineering content here
+// AI-engineering content: Emergency recovery attempt
+// Render the emergency recovery content
 */
