@@ -64,20 +64,16 @@ jobs:
             missing=1
           fi
           if [ -z "$MODEL" ]; then
-            echo "MODEL is not configured. Failing run." >&2
-            missing=1
+            echo "MODEL is not configured. Defaulting to auto." >&2
           fi
           if [ -z "$PRIMARY_MODEL" ]; then
-            echo "PRIMARY_MODEL is not configured. Failing run." >&2
-            missing=1
+            echo "PRIMARY_MODEL is not configured. Defaulting to auto." >&2
           fi
           if [ -z "$FALLBACK_MODEL" ]; then
-            echo "FALLBACK_MODEL is not configured. Failing run." >&2
-            missing=1
+            echo "FALLBACK_MODEL is not configured. Defaulting to llama-3.3-70b-versatile." >&2
           fi
           if [ -z "$SAFE_MODEL" ]; then
-            echo "SAFE_MODEL is not configured. Failing run." >&2
-            missing=1
+            echo "SAFE_MODEL is not configured. Defaulting to mixtral-8x7b-32768." >&2
           fi
           if [ "$missing" -eq 1 ]; then
             echo "run_agent=false" >> "$GITHUB_OUTPUT"
@@ -99,6 +95,10 @@ jobs:
           AGENT_ENABLE_DELAY: "false"
           AGENT_STRICT_MODE: "false"
         run: |
+          export MODEL="${MODEL:-auto}"
+          export PRIMARY_MODEL="${PRIMARY_MODEL:-auto}"
+          export FALLBACK_MODEL="${FALLBACK_MODEL:-llama-3.3-70b-versatile}"
+          export SAFE_MODEL="${SAFE_MODEL:-mixtral-8x7b-32768}"
           echo "start_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           npm run agent:run
 
@@ -115,6 +115,10 @@ jobs:
           AGENT_STRICT_MODE: "true"
           AGENT_FORCE_COMPONENT_UPDATE: "true"
         run: |
+          export MODEL="${MODEL:-auto}"
+          export PRIMARY_MODEL="${PRIMARY_MODEL:-auto}"
+          export FALLBACK_MODEL="${FALLBACK_MODEL:-llama-3.3-70b-versatile}"
+          export SAFE_MODEL="${SAFE_MODEL:-mixtral-8x7b-32768}"
           START_SHA="${{ steps.agent_run.outputs.start_sha }}"
           CURRENT_SHA="$(git rev-parse HEAD)"
 
