@@ -1,24 +1,25 @@
 /*
-  Design Style: Minimalism
-  Theme: Neutral Documentation System
-  Fonts: Display + Body -> Inter | Mono -> JetBrains Mono
+  Design Style: AI-Native UI
+  Theme: Indigo Signal Console
+  Fonts: Display + Body -> Fira Sans | Mono -> Fira Code
 */
 
 @import "tailwindcss";
 
 :root {
-  --bg: #f7f7f8;
-  --bg-muted: #f1f2f3;
+  --bg: #eef2ff;
+  --bg-muted: #e2e8ff;
   --surface: #ffffff;
-  --surface-muted: #fafafa;
-  --text: #121315;
-  --text-muted: #4d525b;
-  --border: #d7dbe0;
-  --border-strong: #b8bec7;
-  --primary: #2f4a92;
-  --primary-soft: #e8edf9;
-  --accent: #1f2f5f;
-  --danger: #b42318;
+  --surface-muted: #f8f9ff;
+  --text: #23214f;
+  --text-muted: #4b4b8f;
+  --border: #cfd5ff;
+  --border-strong: #afb9ff;
+  --primary: #4f46e5;
+  --primary-soft: #e8e9ff;
+  --accent: #818cf8;
+  --success: #22c55e;
+  --danger: #be123c;
 
   --radius-sm: 8px;
   --radius-md: 12px;
@@ -33,9 +34,31 @@
   --space-7: 3rem;
   --space-8: 4rem;
 
-  --font-display: var(--font-inter);
-  --font-body: var(--font-inter);
-  --font-mono: var(--font-jetbrains-mono);
+  --font-display: var(--font-fira-sans);
+  --font-body: var(--font-fira-sans);
+  --font-mono: var(--font-fira-code);
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem;
+  --text-4xl: 2.25rem;
+  --text-5xl: 3rem;
+  --text-6xl: 3.75rem;
+  --text-7xl: 4.5rem;
+
+  --leading-tight: 1.2;
+  --leading-snug: 1.375;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.625;
+
+  --tracking-tight: -0.02em;
+  --tracking-normal: 0em;
+  --tracking-wide: 0.05em;
+  --tracking-widest: 0.1em;
 
   --m3-surface: var(--bg);
   --m3-surface-dim: var(--bg-muted);
@@ -58,33 +81,35 @@
 }
 
 [data-theme="dark"] {
-  --bg: #101114;
-  --bg-muted: #17191d;
-  --surface: #14161a;
-  --surface-muted: #1b1f25;
-  --text: #f5f6f8;
-  --text-muted: #aeb6c2;
-  --border: #2e343d;
-  --border-strong: #495363;
-  --primary: #b7c8ff;
-  --primary-soft: #1a2235;
-  --accent: #d0dcff;
-  --danger: #f97066;
+  --bg: #0a0f2a;
+  --bg-muted: #121a3a;
+  --surface: #0f1634;
+  --surface-muted: #121d44;
+  --text: #e6e8ff;
+  --text-muted: #b4bbff;
+  --border: #263061;
+  --border-strong: #3c498c;
+  --primary: #7b86ff;
+  --primary-soft: #1c285d;
+  --accent: #a2abff;
+  --success: #49d884;
+  --danger: #fb7185;
 }
 
 [data-theme="dim"] {
-  --bg: #17191d;
-  --bg-muted: #1d2127;
-  --surface: #20242b;
-  --surface-muted: #242a33;
-  --text: #ecf0f7;
-  --text-muted: #b8c0ce;
-  --border: #39414d;
-  --border-strong: #4a5566;
-  --primary: #c0ccff;
-  --primary-soft: #283247;
-  --accent: #dde5ff;
-  --danger: #ffa091;
+  --bg: #111634;
+  --bg-muted: #1a2148;
+  --surface: #1a2144;
+  --surface-muted: #1f2852;
+  --text: #dbe0ff;
+  --text-muted: #aeb7f4;
+  --border: #2f3b74;
+  --border-strong: #44549b;
+  --primary: #8f98ff;
+  --primary-soft: #2b3770;
+  --accent: #b4bcff;
+  --success: #5ad38f;
+  --danger: #fb7185;
 }
 
 @theme inline {
@@ -106,10 +131,13 @@ body {
   min-height: 100vh;
   margin: 0;
   font-family: var(--font-body), sans-serif;
-  font-size: 16px;
-  line-height: 1.6;
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
   color: var(--text);
-  background: var(--bg);
+  background:
+    radial-gradient(circle at 8% 10%, color-mix(in srgb, var(--primary) 20%, transparent), transparent 32%),
+    radial-gradient(circle at 88% 4%, color-mix(in srgb, var(--accent) 24%, transparent), transparent 34%),
+    linear-gradient(180deg, var(--bg) 0%, var(--bg-muted) 100%);
   transition: background-color 180ms ease, color 180ms ease;
 }
 
@@ -120,8 +148,8 @@ h4,
 h5,
 h6 {
   font-family: var(--font-display), sans-serif;
-  letter-spacing: -0.02em;
-  line-height: 1.25;
+  letter-spacing: var(--tracking-tight);
+  line-height: var(--leading-tight);
   color: var(--text);
 }
 
@@ -178,21 +206,31 @@ select:focus-visible {
 }
 
 .surface {
-  border: 1px solid var(--border);
+  border: 1px solid color-mix(in srgb, var(--border) 75%, transparent);
   border-radius: var(--radius-lg);
-  background: var(--surface);
+  background: linear-gradient(160deg, color-mix(in srgb, var(--surface) 95%, transparent), color-mix(in srgb, var(--surface-muted) 98%, transparent));
+  box-shadow:
+    0 14px 36px color-mix(in srgb, var(--primary) 10%, transparent),
+    inset 0 1px 0 color-mix(in srgb, white 50%, transparent);
+  backdrop-filter: blur(8px);
 }
 
 .surface-muted {
-  border: 1px solid var(--border);
+  border: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
   border-radius: var(--radius-md);
-  background: var(--surface-muted);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--surface-muted) 96%, transparent), color-mix(in srgb, var(--surface) 92%, transparent));
 }
 
 .m3-card {
-  border: 1px solid var(--border);
+  border: 1px solid color-mix(in srgb, var(--border) 78%, transparent);
   border-radius: var(--radius-lg);
-  background: var(--surface);
+  background: color-mix(in srgb, var(--surface) 95%, transparent);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--primary) 10%, transparent);
+}
+
+.aura-ring {
+  border: 1px solid color-mix(in srgb, var(--primary) 42%, transparent);
+  background: linear-gradient(140deg, color-mix(in srgb, var(--primary-soft) 55%, transparent), color-mix(in srgb, var(--surface) 95%, transparent));
 }
 
 .grid-overlay {

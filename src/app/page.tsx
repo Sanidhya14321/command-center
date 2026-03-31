@@ -47,7 +47,7 @@ const ResourceTemplatesHub = dynamic(
 export default function Home() {
   return (
     <main className="min-h-screen w-full bg-[var(--m3-surface)]">
-      <div className="mx-auto max-w-[1280px] px-4 py-6 md:px-6 lg:py-8">
+      <div className="mx-auto max-w-[1360px] px-4 py-6 md:px-6 lg:py-8">
         <TopNav />
 
         {/* Mobile-only section navigation */}
@@ -56,14 +56,14 @@ export default function Home() {
         </div>
 
         {/* Main content grid - responsive on all breakpoints */}
-        <div className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
+        <div className="grid gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
           {/* Desktop sidebar - hidden on mobile and tablet */}
           <aside className="hidden lg:block">
             <SidebarNav />
           </aside>
 
           {/* Main content area */}
-          <div className="space-y-8 min-w-0">
+          <div className="min-w-0 space-y-8">
             <CommandCenterHero />
             <AICurriculumHub />
             <AIEngineeringMastery />

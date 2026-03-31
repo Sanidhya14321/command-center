@@ -1,17 +1,21 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { Fira_Code, Fira_Sans } from "next/font/google";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { ThemeProvider } from "@/lib/ThemeContext";
 import "./globals.css";
 
-const inter = Inter({
-  variable: "--font-inter",
+const firaSans = Fira_Sans({
+  variable: "--font-fira-sans",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
 });
 
-const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-jetbrains-mono",
+const firaCode = Fira_Code({
+  variable: "--font-fira-code",
   subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -26,7 +30,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}>
+    <html lang="en" className={`${firaSans.variable} ${firaCode.variable} h-full antialiased`}>
       <body className="min-h-full bg-[var(--m3-surface)] text-[var(--m3-on-surface)]">
         <ThemeProvider>
           <PageTransition>{children}</PageTransition>

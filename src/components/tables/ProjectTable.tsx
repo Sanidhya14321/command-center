@@ -82,12 +82,21 @@ export function ProjectTable({ sectionId = "project-repository" }: { sectionId?:
               value={query}
               onChange={(event) => handleQueryChange(event.target.value)}
               placeholder="Search by project name or description"
-              className="w-full rounded-md border border-[var(--m3-outline)] bg-[var(--m3-surface-container-low)] py-2 pl-10 pr-3 text-sm text-[var(--m3-on-surface)] outline-none focus:border-[var(--m3-primary)]"
+              className="w-full rounded-md border border-[var(--m3-outline)] bg-[var(--m3-surface-container-low)] py-2 pl-10 pr-3 text-sm text-[var(--m3-on-surface)] outline-none transition-colors duration-200 focus:border-[var(--m3-primary)]"
             />
           </label>
           <div className="rounded-md border border-[var(--m3-outline)] bg-[var(--m3-surface-container-low)] px-3 py-2 text-sm text-[var(--m3-on-surface-variant)]">
             Showing {currentRangeText}
           </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--m3-on-surface-variant)]">
+          <span className="rounded-md border border-[var(--m3-outline)]/70 bg-[var(--m3-surface-container-low)] px-2.5 py-1">
+            Sort: {sortKey === "id" ? "Serial" : "Project Name"} ({sortDirection.toUpperCase()})
+          </span>
+          <span className="rounded-md border border-[var(--m3-outline)]/70 bg-[var(--m3-surface-container-low)] px-2.5 py-1">
+            Page size: {PAGE_SIZE}
+          </span>
         </div>
 
         <div className="overflow-hidden rounded-md border border-[var(--m3-outline)]">
@@ -107,10 +116,12 @@ export function ProjectTable({ sectionId = "project-repository" }: { sectionId?:
                 </tr>
               </thead>
               <tbody>
-                {paginated.map((item) => (
+                {paginated.map((item, rowIndex) => (
                   <tr
                     key={item.id}
-                    className="border-t border-[var(--m3-outline)] bg-[var(--m3-surface-container-low)] transition hover:bg-[var(--m3-surface-container)]"
+                    className={`border-t border-[var(--m3-outline)] transition-colors duration-200 hover:bg-[var(--m3-surface-container)] ${
+                      rowIndex % 2 === 0 ? "bg-[var(--m3-surface-container-low)]" : "bg-[var(--m3-surface-container)]/55"
+                    }`}
                   >
                     <td className="px-4 py-3 font-mono text-xs text-[var(--m3-on-surface-variant)]">{String(item.id).padStart(3, "0")}</td>
                     <td className="px-4 py-3 font-semibold text-[var(--m3-secondary)]">{item.projectName}</td>
@@ -139,7 +150,7 @@ function SortableHeader({ label, active, onClick }: { label: string; active: boo
       <button
         type="button"
         onClick={onClick}
-        className="inline-flex items-center gap-2 hover:text-[var(--m3-on-surface)]"
+        className="inline-flex min-h-[32px] cursor-pointer items-center gap-2 rounded-md px-1 transition-colors duration-200 hover:text-[var(--m3-on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--m3-primary)]"
       >
         {label}
         <ArrowDownUp className={`size-3 ${active ? "text-[var(--m3-primary)]" : ""}`} />
@@ -165,7 +176,7 @@ function Pagination({
         type="button"
         onClick={onPrevious}
         disabled={page === 1}
-        className="rounded-md border border-[var(--m3-outline)] px-4 py-2 text-sm text-[var(--m3-on-surface-variant)] disabled:opacity-40"
+        className="min-h-[40px] cursor-pointer rounded-md border border-[var(--m3-outline)] px-4 py-2 text-sm text-[var(--m3-on-surface-variant)] transition-colors duration-200 hover:bg-[var(--m3-surface-container-low)] focus:outline-none focus:ring-2 focus:ring-[var(--m3-primary)] disabled:cursor-not-allowed disabled:opacity-40"
       >
         Previous
       </button>
@@ -176,7 +187,7 @@ function Pagination({
         type="button"
         onClick={onNext}
         disabled={page === totalPages}
-        className="rounded-md border border-[var(--m3-outline)] px-4 py-2 text-sm text-[var(--m3-on-surface-variant)] disabled:opacity-40"
+        className="min-h-[40px] cursor-pointer rounded-md border border-[var(--m3-outline)] px-4 py-2 text-sm text-[var(--m3-on-surface-variant)] transition-colors duration-200 hover:bg-[var(--m3-surface-container-low)] focus:outline-none focus:ring-2 focus:ring-[var(--m3-primary)] disabled:cursor-not-allowed disabled:opacity-40"
       >
         Next
       </button>
