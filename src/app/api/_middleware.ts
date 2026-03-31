@@ -5,7 +5,8 @@ const RATE_LIMIT = 60; // requests per minute
 const ipHits: Record<string, { count: number; last: number }> = {};
 
 export function middleware(request: NextRequest) {
-  const ip = request.ip || request.headers.get('x-forwarded-for') || 'unknown';
+  // NextRequest does not have an 'ip' property; use headers for IP detection
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || 'unknown';
   const now = Date.now();
   if (!ipHits[ip] || now - ipHits[ip].last > 60_000) {
     ipHits[ip] = { count: 1, last: now };
@@ -17,9 +18,10 @@ export function middleware(request: NextRequest) {
     return new NextResponse('Rate limit exceeded', { status: 429 });
   }
 
-  // Simple API key check (set NEXT_PUBLIC_API_KEY in env for demo)
+  // API key check for server-to-server protection.
+  // Do not use NEXT_PUBLIC_ variables for secrets.
   const apiKey = request.headers.get('x-api-key');
-  const requiredKey = process.env.NEXT_PUBLIC_API_KEY;
+  const requiredKey = process.env.INTERNAL_API_KEY || process.env.API_KEY;
   if (requiredKey && apiKey !== requiredKey) {
     return new NextResponse('Unauthorized', { status: 401 });
   }

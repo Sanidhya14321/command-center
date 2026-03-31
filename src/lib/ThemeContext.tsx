@@ -31,7 +31,7 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     let saved: ThemeType | null = null;
     try {
       saved = localStorage.getItem('ai-theme') as ThemeType | null;
-    } catch (e) {
+    } catch {
       // localStorage may be unavailable (SSR, privacy mode)
       saved = null;
     }
@@ -46,7 +46,7 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     let saved: ThemeType | null = null;
     try {
       saved = localStorage.getItem('ai-theme') as ThemeType | null;
-    } catch (e) {
+    } catch {
       saved = null;
     }
     return applyThemeToDocument(saved || 'system');
@@ -59,7 +59,7 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     setResolvedTheme(resolved);
     try {
       localStorage.setItem('ai-theme', newTheme);
-    } catch (e) {
+    } catch {
       // localStorage may be unavailable
     }
   };

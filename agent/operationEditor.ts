@@ -43,7 +43,6 @@ function isPathAllowed(filePath: string): boolean {
   }
   return true;
 }
-
 function ensureText(value: unknown, field: string): string {
   if (typeof value !== "string" || !value.trim()) {
     throw new Error(`Operation validation failed: ${field} must be a non-empty string`);
