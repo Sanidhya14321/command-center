@@ -48,10 +48,39 @@ jobs:
         id: secret_check
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          NEWS_API_KEY: ${{ secrets.NEWS_API_KEY }}
+          MODEL: ${{ vars.MODEL }}
+          PRIMARY_MODEL: ${{ vars.PRIMARY_MODEL }}
+          FALLBACK_MODEL: ${{ vars.FALLBACK_MODEL }}
+          SAFE_MODEL: ${{ vars.SAFE_MODEL }}
         run: |
+          missing=0
           if [ -z "$GROQ_API_KEY" ]; then
+            echo "GROQ_API_KEY is not configured. Failing run." >&2
+            missing=1
+          fi
+          if [ -z "$NEWS_API_KEY" ]; then
+            echo "NEWS_API_KEY is not configured. Failing run." >&2
+            missing=1
+          fi
+          if [ -z "$MODEL" ]; then
+            echo "MODEL is not configured. Failing run." >&2
+            missing=1
+          fi
+          if [ -z "$PRIMARY_MODEL" ]; then
+            echo "PRIMARY_MODEL is not configured. Failing run." >&2
+            missing=1
+          fi
+          if [ -z "$FALLBACK_MODEL" ]; then
+            echo "FALLBACK_MODEL is not configured. Failing run." >&2
+            missing=1
+          fi
+          if [ -z "$SAFE_MODEL" ]; then
+            echo "SAFE_MODEL is not configured. Failing run." >&2
+            missing=1
+          fi
+          if [ "$missing" -eq 1 ]; then
             echo "run_agent=false" >> "$GITHUB_OUTPUT"
-            echo "GROQ_API_KEY is not configured. Failing run because autonomous content must come from Groq." >&2
             exit 1
           else
             echo "run_agent=true" >> "$GITHUB_OUTPUT"

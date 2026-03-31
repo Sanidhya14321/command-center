@@ -24,8 +24,24 @@ function normalizePath(filePath: string): string {
   return filePath.replace(/\\/g, "/").replace(/^\/+/, "");
 }
 
+const SENSITIVE_DENYLIST = [
+  '.env', '.env.local', '.env.*', 'secrets/', 'secrets', 'secret/', 'secret',
+  'config/.env', 'config/secrets', 'config/secret',
+];
+
 function isPathAllowed(filePath: string): boolean {
-  return /^(src|docs|agent)\//.test(filePath);
+  // Only allow src/, docs/, agent/ and block any path containing sensitive files
+  if (!/^(src|docs|agent)\//.test(filePath)) return false;
+  const lower = filePath.toLowerCase();
+  for (const pattern of SENSITIVE_DENYLIST) {
+    if (pattern.endsWith('.*')) {
+      // Match any file with this prefix
+      if (lower.startsWith(pattern.slice(0, -2))) return false;
+    } else if (lower.includes(pattern)) {
+      return false;
+    }
+  }
+  return true;
 }
 
 function ensureText(value: unknown, field: string): string {

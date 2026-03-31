@@ -25,24 +25,43 @@ function applyThemeToDocument(theme: ThemeType): Exclude<ThemeType, 'system'> {
 }
 
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
+
   const [theme, setThemeState] = useState<ThemeType>(() => {
     if (typeof window === 'undefined') return 'system';
-    const saved = localStorage.getItem('ai-theme') as ThemeType | null;
+    let saved: ThemeType | null = null;
+    try {
+      saved = localStorage.getItem('ai-theme') as ThemeType | null;
+    } catch (e) {
+      // localStorage may be unavailable (SSR, privacy mode)
+      saved = null;
+    }
     const nextTheme = saved || 'system';
     applyThemeToDocument(nextTheme);
     return nextTheme;
   });
 
+
   const [resolvedTheme, setResolvedTheme] = useState<Exclude<ThemeType, 'system'>>(() => {
     if (typeof window === 'undefined') return 'dark';
-    return applyThemeToDocument((localStorage.getItem('ai-theme') as ThemeType | null) || 'system');
+    let saved: ThemeType | null = null;
+    try {
+      saved = localStorage.getItem('ai-theme') as ThemeType | null;
+    } catch (e) {
+      saved = null;
+    }
+    return applyThemeToDocument(saved || 'system');
   });
+
 
   const setTheme = (newTheme: ThemeType): void => {
     setThemeState(newTheme);
     const resolved = applyThemeToDocument(newTheme);
     setResolvedTheme(resolved);
-    localStorage.setItem('ai-theme', newTheme);
+    try {
+      localStorage.setItem('ai-theme', newTheme);
+    } catch (e) {
+      // localStorage may be unavailable
+    }
   };
 
   React.useEffect(() => {
