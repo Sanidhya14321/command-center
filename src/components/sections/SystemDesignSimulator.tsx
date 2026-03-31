@@ -732,5 +732,5 @@ export function SystemDesignSimulator({ sectionId = 'system-simulator' }: { sect
   );
 }
 /* Autonomous Groq component update
-// AI-engineering content: System Design Simulator
+// Add meaningful AI-engineering content here
 */
