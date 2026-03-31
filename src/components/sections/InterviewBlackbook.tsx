@@ -16,14 +16,20 @@ export function InterviewBlackbook() {
       subtitle="Scenario drills aligned to C.A.S.E so answers stay structured under pressure"
       icon={<MessagesSquare className="size-6" />}
     >
-      <div className="grid gap-3 md:grid-cols-2">
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
         {prompts.map((prompt, index) => (
           <article
             key={prompt}
-            className="rounded-2xl border border-[var(--m3-outline)]/45 bg-[var(--m3-surface-container-low)] p-4"
+            className="rounded-lg border border-[var(--m3-outline)]/50 bg-gradient-to-br from-[var(--m3-surface-container-low)] to-[var(--m3-surface-container)] hover:border-[var(--m3-outline)]/80 p-4 transition-all hover:shadow-sm"
+            role="group"
           >
-            <p className="font-mono text-xs uppercase tracking-[0.1em] text-[var(--m3-primary)]">Case {index + 1}</p>
-            <p className="mt-2 text-sm leading-6 text-[var(--m3-on-surface-variant)]">{prompt}</p>
+            <div className="flex items-center justify-between mb-3">
+              <p className="font-mono text-xs uppercase tracking-[0.1em] font-semibold bg-[var(--m3-primary)]/12 text-[var(--m3-primary)] px-2.5 py-1.5 rounded-md">
+                Case {index + 1}
+              </p>
+              <span className="text-xs text-[var(--m3-on-surface-variant)] opacity-60">Interview drill</span>
+            </div>
+            <p className="text-sm leading-6 text-[var(--m3-on-surface-variant)]">{prompt}</p>
           </article>
         ))}
       </div>

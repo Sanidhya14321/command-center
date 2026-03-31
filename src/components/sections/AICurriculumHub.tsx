@@ -97,18 +97,18 @@ export function AICurriculumHub() {
           className="grid gap-3 md:grid-cols-4"
         >
           {coverage.map((item) => (
-            <div key={item.label} className="rounded-2xl border border-[var(--m3-outline)]/45 bg-[var(--m3-surface-container-low)] p-3">
+            <div key={item.label} className="rounded-lg border border-[var(--m3-outline)]/50 bg-gradient-to-br from-[var(--m3-surface-container-low)] to-[var(--m3-surface-container)] p-3 hover:border-[var(--m3-outline)]/80 transition-all">
               <div className="mb-2 flex items-center gap-2 text-[var(--m3-primary)]">
                 {item.icon}
-                <span className="text-xs uppercase tracking-[0.08em]">{item.label}</span>
+                <span className="text-xs uppercase tracking-[0.08em] font-semibold">{item.label}</span>
               </div>
-              <p className="text-2xl font-semibold text-[var(--m3-on-surface)]">{item.value} chapters</p>
+              <p className="text-xl md:text-2xl font-bold text-[var(--m3-on-surface)]">{item.value} chapters</p>
             </div>
           ))}
         </motion.div>
 
         <div className="grid gap-4 lg:grid-cols-[340px_minmax(0,1fr)]">
-          <aside className="rounded-2xl border border-[var(--m3-outline)]/45 bg-[var(--m3-surface-container-low)] p-3">
+          <aside className="rounded-lg border border-[var(--m3-outline)]/50 bg-gradient-to-br from-[var(--m3-surface-container-low)] to-[var(--m3-surface-container)] p-4">
             <h3 className="mb-3 text-sm font-semibold uppercase tracking-[0.08em] text-[var(--m3-secondary)]">Hands-on LLM Chapter Navigator</h3>
             <div className="max-h-[560px] space-y-2 overflow-y-auto pr-1">
               {chapters.map((chapter, index) => (
@@ -121,10 +121,10 @@ export function AICurriculumHub() {
                   transition={{ duration: 0.2, delay: index * 0.02 }}
                   onClick={() => fetchExpansion(chapter)}
                   className={cn(
-                    "w-full rounded-2xl border px-3 py-3 text-left transition",
+                    "w-full rounded-md border px-3 py-2.5 text-left transition-all min-h-[80px]",
                     selected.slug === chapter.slug
-                      ? "border-[var(--m3-primary)]/60 bg-[var(--m3-primary)]/12"
-                      : "border-[var(--m3-outline)]/35 bg-[var(--m3-surface-container)] hover:bg-[var(--m3-surface-container-high)]",
+                      ? "border-[var(--m3-primary)] bg-[var(--m3-primary)]/12 shadow-sm"
+                      : "border-[var(--m3-outline)]/50 bg-[var(--m3-surface-container)] hover:bg-[var(--m3-surface-container-high)] hover:border-[var(--m3-outline)]/80",
                   )}
                 >
                   <div className="flex items-center justify-between gap-2">
@@ -145,7 +145,7 @@ export function AICurriculumHub() {
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.22 }}
-              className="rounded-2xl border border-[var(--m3-outline)]/45 bg-[var(--m3-surface-container-low)] p-4"
+              className="rounded-lg border border-[var(--m3-outline)]/50 bg-gradient-to-br from-[var(--m3-surface-container-low)] to-[var(--m3-surface-container)] p-4"
             >
               <div className="mb-3 flex items-center gap-2">
                 <span className={cn("rounded-full border px-2 py-1 text-[10px] uppercase tracking-[0.08em]", levelColors[selected.level])}>
@@ -196,7 +196,7 @@ export function AICurriculumHub() {
 
             <section id="deployment-blueprint" className="rounded-2xl border border-[var(--m3-outline)]/45 bg-[var(--m3-surface-container-low)] p-4">
               <h3 className="mb-3 text-lg font-semibold text-[var(--m3-on-surface)]">Production Blueprint: Deployment and Everything In-Between</h3>
-              <div className="grid gap-2 md:grid-cols-2">
+              <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
                 {deploymentTopics.map((topic, index) => (
                   <motion.div
                     key={topic}
@@ -204,7 +204,7 @@ export function AICurriculumHub() {
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true, margin: "-60px" }}
                     transition={{ duration: 0.2, delay: index * 0.02 }}
-                    className="rounded-xl border border-[var(--m3-outline)]/40 bg-[var(--m3-surface-container)] px-3 py-2 text-sm text-[var(--m3-on-surface-variant)]"
+                    className="rounded-md border border-[var(--m3-outline)]/50 bg-[var(--m3-surface-container)] hover:border-[var(--m3-outline)]/80 px-3 py-2.5 text-xs md:text-sm text-[var(--m3-on-surface-variant)] transition-all"
                   >
                     {topic}
                   </motion.div>
@@ -214,9 +214,9 @@ export function AICurriculumHub() {
           </div>
         </div>
 
-        <section className="rounded-2xl border border-[var(--m3-outline)]/45 bg-[var(--m3-surface-container-low)] p-4">
+        <section className="rounded-lg border border-[var(--m3-outline)]/50 bg-gradient-to-br from-[var(--m3-surface-container-low)] to-[var(--m3-surface-container)] p-4">
           <h3 className="mb-3 text-lg font-semibold text-[var(--m3-on-surface)]">Learning Progression Visualization</h3>
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-4">
             {phaseSummary.map((phase, index) => (
               <motion.article
                 key={phase.title}
@@ -224,10 +224,10 @@ export function AICurriculumHub() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-60px" }}
                 transition={{ duration: 0.24, delay: index * 0.04 }}
-                className="rounded-2xl border border-[var(--m3-outline)]/40 bg-[var(--m3-surface-container)] p-3"
+                className="rounded-lg border border-[var(--m3-outline)]/50 bg-gradient-to-br from-[var(--m3-surface-container)] to-[var(--m3-surface-container-high)] p-4 hover:border-[var(--m3-outline)]/80 transition-all"
               >
-                <p className="font-mono text-xs uppercase tracking-[0.1em] text-[var(--m3-primary)]">{phase.chapters}</p>
-                <h4 className="mt-2 text-base font-semibold text-[var(--m3-on-surface)]">{phase.title}</h4>
+                <p className="font-mono text-xs uppercase tracking-[0.1em] font-semibold text-[var(--m3-primary)] bg-[var(--m3-primary)]/12 px-2.5 py-1.5 rounded-md inline-block">{phase.chapters}</p>
+                <h4 className="mt-3 text-base md:text-lg font-bold text-[var(--m3-on-surface)]">{phase.title}</h4>
                 <p className="mt-2 text-sm leading-6 text-[var(--m3-on-surface-variant)]">{phase.focus}</p>
               </motion.article>
             ))}

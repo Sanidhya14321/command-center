@@ -112,6 +112,13 @@ function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
 
+function getBottleneckTone(message: string): 'positive' | 'warning' | 'critical' {
+  const text = message.toLowerCase();
+  if (text.includes('no critical')) return 'positive';
+  if (text.includes('isolated') || text.includes('missing')) return 'critical';
+  return 'warning';
+}
+
 export function SystemDesignSimulator({ sectionId = 'system-simulator' }: { sectionId?: string }) {
   const [components, setComponents] = useState<ArchComponent[]>([]);
   const [connections, setConnections] = useState<Connection[]>([]);
@@ -163,7 +170,7 @@ export function SystemDesignSimulator({ sectionId = 'system-simulator' }: { sect
     if (selectedFrom === id) {
       setSelectedFrom(null);
     }
-    if (selectedConnection?.startsWith(`${id}-`) || selectedConnection?.endsWith(`-${id}`)) {
+    if (selectedConnection?.startsWith(`${id}::`) || selectedConnection?.endsWith(`::${id}`)) {
       setSelectedConnection(null);
     }
   };
@@ -440,7 +447,7 @@ export function SystemDesignSimulator({ sectionId = 'system-simulator' }: { sect
       icon={<Wrench className="size-6" />}
     >
       <div className="space-y-4">
-        <div className="surface-muted p-3">
+        <div className="surface-muted rounded-lg border border-[var(--m3-outline)]/50 bg-gradient-to-br from-[var(--m3-surface-container-low)] to-[var(--m3-surface-container)] p-3 shadow-sm">
           <div className="mb-3 flex items-center justify-between gap-3">
             <p className="font-mono text-xs uppercase tracking-[0.08em] text-[var(--m3-on-surface-variant)]">Component Palette</p>
             <div className="flex flex-wrap items-center gap-2">
@@ -449,7 +456,7 @@ export function SystemDesignSimulator({ sectionId = 'system-simulator' }: { sect
                   key={template.id}
                   type="button"
                   onClick={() => applyTemplate(template.id)}
-                  className="inline-flex items-center gap-2 rounded-md border border-[var(--m3-outline)] bg-[var(--m3-surface-container)] px-2 py-1 text-xs text-[var(--m3-on-surface-variant)]"
+                  className="inline-flex min-h-9 items-center gap-2 rounded-md border border-[var(--m3-outline)]/60 bg-[var(--m3-surface-container)] px-2 py-1 text-xs text-[var(--m3-on-surface-variant)] transition-colors duration-200 hover:border-[var(--m3-outline)] hover:bg-[var(--m3-surface-container-high)]"
                 >
                   <LayoutTemplate className="size-3" />
                   {template.label}
@@ -464,7 +471,7 @@ export function SystemDesignSimulator({ sectionId = 'system-simulator' }: { sect
                 key={comp.type}
                 type="button"
                 onClick={() => addComponent(comp.type)}
-                className="inline-flex items-center gap-2 rounded-md border border-[var(--m3-outline)] bg-[var(--m3-surface-container)] px-3 py-2 text-sm text-[var(--m3-on-surface)]"
+                className="inline-flex min-h-10 items-center gap-2 rounded-md border border-[var(--m3-outline)]/60 bg-[var(--m3-surface-container)] px-3 py-2 text-sm text-[var(--m3-on-surface)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--m3-outline)] hover:bg-[var(--m3-surface-container-high)]"
               >
                 <Plus className="size-4" />
                 {comp.icon}
@@ -479,7 +486,7 @@ export function SystemDesignSimulator({ sectionId = 'system-simulator' }: { sect
                 setSelectedFrom(null);
                 setSelectedConnection(null);
               }}
-              className="ml-auto inline-flex items-center gap-2 rounded-md border border-[var(--m3-outline)] bg-[var(--m3-surface-container)] px-3 py-2 text-sm text-[var(--m3-on-surface-variant)]"
+              className="ml-auto inline-flex min-h-10 items-center gap-2 rounded-md border border-[var(--m3-outline)]/60 bg-[var(--m3-surface-container)] px-3 py-2 text-sm text-[var(--m3-on-surface-variant)] transition-colors duration-200 hover:border-[var(--m3-outline)] hover:bg-[var(--m3-surface-container-high)]"
             >
               <RefreshCcw className="size-4" />
               Clear Canvas
@@ -487,8 +494,8 @@ export function SystemDesignSimulator({ sectionId = 'system-simulator' }: { sect
           </div>
         </div>
 
-        <div className="surface-muted overflow-hidden">
-          <div className="flex items-center justify-between border-b border-[var(--m3-outline)] px-3 py-2">
+        <div className="surface-muted overflow-hidden rounded-lg border border-[var(--m3-outline)]/50 bg-gradient-to-br from-[var(--m3-surface-container-low)] to-[var(--m3-surface-container)] shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--m3-outline)]/60 px-3 py-2">
             <div className="text-sm text-[var(--m3-on-surface-variant)]">
               {components.length} nodes | {connections.length} connections
             </div>
@@ -497,7 +504,7 @@ export function SystemDesignSimulator({ sectionId = 'system-simulator' }: { sect
                 type="button"
                 onClick={autoLayout}
                 disabled={!components.length}
-                className="rounded-md border border-[var(--m3-outline)] px-2 py-1 text-[var(--m3-on-surface-variant)] disabled:opacity-50"
+                className="rounded-md border border-[var(--m3-outline)]/70 px-2 py-1 text-[var(--m3-on-surface-variant)] transition-colors duration-200 hover:border-[var(--m3-outline)] hover:bg-[var(--m3-surface-container-high)] disabled:opacity-50"
                 title="Auto arrange nodes"
               >
                 Auto Layout
@@ -506,7 +513,7 @@ export function SystemDesignSimulator({ sectionId = 'system-simulator' }: { sect
                 type="button"
                 onClick={removeSelectedConnection}
                 disabled={!selectedConnection}
-                className="rounded-md border border-[var(--m3-outline)] px-2 py-1 text-[var(--m3-on-surface-variant)] disabled:opacity-50"
+                className="rounded-md border border-[var(--m3-outline)]/70 px-2 py-1 text-[var(--m3-on-surface-variant)] transition-colors duration-200 hover:border-[var(--m3-outline)] hover:bg-[var(--m3-surface-container-high)] disabled:opacity-50"
                 title="Remove selected connection"
               >
                 <Unlink2 className="size-4" />
@@ -514,7 +521,7 @@ export function SystemDesignSimulator({ sectionId = 'system-simulator' }: { sect
               <button
                 type="button"
                 onClick={() => setScale((prev) => Math.max(0.6, Number((prev - 0.1).toFixed(2))))}
-                className="rounded-md border border-[var(--m3-outline)] px-2 py-1 text-[var(--m3-on-surface-variant)]"
+                className="rounded-md border border-[var(--m3-outline)]/70 px-2 py-1 text-[var(--m3-on-surface-variant)] transition-colors duration-200 hover:border-[var(--m3-outline)] hover:bg-[var(--m3-surface-container-high)]"
               >
                 <ZoomOut className="size-4" />
               </button>
@@ -522,7 +529,7 @@ export function SystemDesignSimulator({ sectionId = 'system-simulator' }: { sect
               <button
                 type="button"
                 onClick={() => setScale((prev) => Math.min(1.5, Number((prev + 0.1).toFixed(2))))}
-                className="rounded-md border border-[var(--m3-outline)] px-2 py-1 text-[var(--m3-on-surface-variant)]"
+                className="rounded-md border border-[var(--m3-outline)]/70 px-2 py-1 text-[var(--m3-on-surface-variant)] transition-colors duration-200 hover:border-[var(--m3-outline)] hover:bg-[var(--m3-surface-container-high)]"
               >
                 <ZoomIn className="size-4" />
               </button>
@@ -531,7 +538,7 @@ export function SystemDesignSimulator({ sectionId = 'system-simulator' }: { sect
 
           <div
             ref={canvasRef}
-            className={`relative h-[420px] overflow-auto ${panning ? 'cursor-grabbing' : 'cursor-grab'}`}
+            className={`relative h-[420px] overflow-auto md:h-[520px] ${panning ? 'cursor-grabbing' : 'cursor-grab'}`}
             onPointerDown={beginPan}
             onScroll={syncViewport}
             onPointerMove={handleCanvasPointerMove}
@@ -592,8 +599,10 @@ export function SystemDesignSimulator({ sectionId = 'system-simulator' }: { sect
                       tabIndex={0}
                       onPointerDown={(e) => beginDrag(e, node)}
                       onClick={() => handleNodeClick(node.id)}
-                      className={`surface flex cursor-pointer items-start justify-between gap-2 p-2 text-left ${
-                        selectedFrom === node.id ? 'border-[var(--m3-primary)]' : ''
+                      className={`surface flex cursor-pointer items-start justify-between gap-2 rounded-lg border border-[var(--m3-outline)]/60 bg-gradient-to-br from-[var(--m3-surface-container)] to-[var(--m3-surface-container-high)] p-2 text-left transition-all duration-200 ${
+                        selectedFrom === node.id
+                          ? 'border-[var(--m3-primary)] shadow-[0_0_0_1px_var(--m3-primary)]'
+                          : 'hover:-translate-y-0.5 hover:border-[var(--m3-outline)] hover:shadow-sm'
                       }`}
                     >
                       <div className="min-w-0">
@@ -609,7 +618,7 @@ export function SystemDesignSimulator({ sectionId = 'system-simulator' }: { sect
                           e.stopPropagation();
                           removeComponent(node.id);
                         }}
-                        className="rounded-md border border-[var(--m3-outline)] p-1 text-[var(--m3-on-surface-variant)]"
+                        className="rounded-md border border-[var(--m3-outline)]/70 p-1 text-[var(--m3-on-surface-variant)] transition-colors duration-200 hover:border-[var(--m3-outline)] hover:bg-[var(--m3-surface-container-highest)]"
                       >
                         <Trash2 className="size-3" />
                       </button>
@@ -619,7 +628,7 @@ export function SystemDesignSimulator({ sectionId = 'system-simulator' }: { sect
               })}
             </div>
 
-            <div className="pointer-events-auto absolute bottom-3 right-3 rounded-lg border border-[var(--m3-outline)] bg-[var(--m3-surface-container)]/95 p-2 backdrop-blur">
+            <div className="pointer-events-auto absolute bottom-3 right-3 rounded-lg border border-[var(--m3-outline)]/60 bg-[var(--m3-surface-container)]/95 p-2 shadow-sm backdrop-blur">
               <p className="mb-1 text-[10px] uppercase tracking-[0.08em] text-[var(--m3-on-surface-variant)]">Minimap</p>
               <button
                 type="button"
@@ -661,11 +670,11 @@ export function SystemDesignSimulator({ sectionId = 'system-simulator' }: { sect
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 border-t border-[var(--m3-outline)] px-3 py-2 text-xs text-[var(--m3-on-surface-variant)]">
+          <div className="flex flex-wrap items-center gap-2 border-t border-[var(--m3-outline)]/60 px-3 py-2 text-xs text-[var(--m3-on-surface-variant)]">
             <Link2 className="size-3" />
             Click one node and then another to create a directed connection.
             {selectedFrom ? (
-              <span className="inline-flex items-center gap-1 rounded-md border border-[var(--m3-outline)] px-2 py-0.5">
+              <span className="inline-flex items-center gap-1 rounded-md border border-[var(--m3-outline)]/70 bg-[var(--m3-surface-container)] px-2 py-0.5">
                 <Unlink2 className="size-3" />
                 Source: {components.find((c) => c.id === selectedFrom)?.label}
               </span>
@@ -674,37 +683,47 @@ export function SystemDesignSimulator({ sectionId = 'system-simulator' }: { sect
         </div>
 
         <div className="grid gap-3 lg:grid-cols-2">
-          <div className="surface-muted p-4">
+          <div className="surface-muted rounded-lg border border-[var(--m3-outline)]/50 bg-gradient-to-br from-[var(--m3-surface-container-low)] to-[var(--m3-surface-container)] p-4 shadow-sm">
             <div className="mb-2 flex items-center gap-2">
               <Search className="size-4 text-[var(--m3-on-surface-variant)]" />
               <h3 className="text-sm font-semibold text-[var(--m3-on-surface)]">Flow Explanation</h3>
             </div>
             <p className="text-sm leading-6 text-[var(--m3-on-surface-variant)]">{flowSummary}</p>
-            <p className="mt-3 inline-flex items-center gap-2 rounded-md border border-[var(--m3-outline)] px-3 py-2 text-xs text-[var(--m3-on-surface-variant)]">
+            <p className="mt-3 inline-flex items-center gap-2 rounded-md border border-[var(--m3-outline)]/70 bg-[var(--m3-surface-container)] px-3 py-2 text-xs text-[var(--m3-on-surface-variant)]">
               <ArrowRight className="size-3" />
               {architectureHealth}
             </p>
             <button
               type="button"
               onClick={copySummary}
-              className="mt-3 inline-flex items-center gap-2 rounded-md border border-[var(--m3-outline)] px-3 py-2 text-xs text-[var(--m3-on-surface-variant)]"
+              className="mt-3 inline-flex items-center gap-2 rounded-md border border-[var(--m3-outline)]/70 bg-[var(--m3-surface-container)] px-3 py-2 text-xs text-[var(--m3-on-surface-variant)] transition-colors duration-200 hover:border-[var(--m3-outline)] hover:bg-[var(--m3-surface-container-high)]"
             >
               <Copy className="size-3" />
               {copied ? 'Copied architecture summary' : 'Copy architecture summary'}
             </button>
           </div>
 
-          <div className="surface-muted p-4">
+          <div className="surface-muted rounded-lg border border-[var(--m3-outline)]/50 bg-gradient-to-br from-[var(--m3-surface-container-low)] to-[var(--m3-surface-container)] p-4 shadow-sm">
             <div className="mb-2 flex items-center gap-2">
               <Wrench className="size-4 text-[var(--m3-on-surface-variant)]" />
               <h3 className="text-sm font-semibold text-[var(--m3-on-surface)]">Bottleneck Analysis</h3>
             </div>
             <ul className="space-y-2 text-sm text-[var(--m3-on-surface-variant)]">
-              {bottlenecks.map((line) => (
-                <li key={line} className="rounded-md border border-[var(--m3-outline)] bg-[var(--m3-surface-container)] px-3 py-2">
-                  {line}
-                </li>
-              ))}
+              {bottlenecks.map((line) => {
+                const tone = getBottleneckTone(line);
+                const toneClasses =
+                  tone === 'positive'
+                    ? 'border-[var(--m3-secondary)]/50 bg-[var(--m3-secondary-container)]/35 text-[var(--m3-on-surface)]'
+                    : tone === 'critical'
+                      ? 'border-[var(--m3-error)]/50 bg-[var(--m3-error-container)]/35 text-[var(--m3-on-surface)]'
+                      : 'border-[var(--m3-tertiary)]/50 bg-[var(--m3-tertiary-container)]/35 text-[var(--m3-on-surface)]';
+
+                return (
+                  <li key={line} className={`rounded-md border px-3 py-2 ${toneClasses}`}>
+                    {line}
+                  </li>
+                );
+              })}
             </ul>
           </div>
         </div>

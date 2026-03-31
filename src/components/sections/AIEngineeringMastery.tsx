@@ -18,11 +18,13 @@ export function AIEngineeringMastery() {
       icon={<Braces className="size-6" />}
     >
       <div className="space-y-6">
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
           {masteryTopics.map((topic) => (
             <div
               key={topic}
-              className="rounded-2xl border border-[var(--m3-outline)]/45 bg-[var(--m3-surface-container-low)] px-4 py-3 text-sm text-[var(--m3-on-surface-variant)]"
+              className="rounded-lg border border-[var(--m3-outline)]/50 bg-gradient-to-br from-[var(--m3-surface-container-low)] to-[var(--m3-surface-container)] hover:border-[var(--m3-outline)]/80 px-4 py-3 text-sm font-medium text-[var(--m3-on-surface-variant)] transition-all hover:shadow-sm"
+              role="option"
+              aria-selected="false"
             >
               {topic}
             </div>
@@ -94,15 +96,16 @@ type ChecklistCardProps = {
 
 function ChecklistCard({ title, icon, items }: ChecklistCardProps) {
   return (
-    <article className="rounded-2xl border border-[var(--m3-outline)]/50 bg-[var(--m3-surface-container-low)] p-4">
-      <div className="mb-3 flex items-center gap-2 text-[var(--m3-secondary)]">
+    <article className="rounded-lg border border-[var(--m3-outline)]/50 bg-gradient-to-br from-[var(--m3-surface-container-low)] to-[var(--m3-surface-container)] p-4 hover:border-[var(--m3-outline)]/80 transition-all">
+      <div className="mb-4 flex items-center gap-2 text-[var(--m3-secondary)]">
         {icon}
-        <h4 className="text-base font-semibold">{title}</h4>
+        <h4 className="text-sm md:text-base font-semibold">{title}</h4>
       </div>
-      <ul className="space-y-2 text-sm text-[var(--m3-on-surface-variant)]">
+      <ul className="space-y-2 text-xs md:text-sm text-[var(--m3-on-surface-variant)]" role="list">
         {items.map((item) => (
-          <li key={item} className="rounded-xl bg-[var(--m3-surface-container)] px-3 py-2">
-            {item}
+          <li key={item} className="rounded-md border border-[var(--m3-outline)]/25 bg-[var(--m3-surface-container)] px-3 py-2.5 flex items-start gap-2" role="listitem">
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--m3-primary)] mt-1 shrink-0" aria-hidden="true" />
+            <span>{item}</span>
           </li>
         ))}
       </ul>

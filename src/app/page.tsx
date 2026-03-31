@@ -46,27 +46,36 @@ const ResourceTemplatesHub = dynamic(
 
 export default function Home() {
   return (
-    <main className="mx-auto max-w-[1280px] px-4 py-6 md:px-6 lg:py-8">
-      <TopNav />
+    <main className="min-h-screen w-full bg-[var(--m3-surface)]">
+      <div className="mx-auto max-w-[1280px] px-4 py-6 md:px-6 lg:py-8">
+        <TopNav />
 
-      <div className="mb-4 flex items-center justify-end gap-3">
-        <SidebarNav compact />
-      </div>
+        {/* Mobile-only section navigation */}
+        <div className="mb-6 flex items-center justify-end gap-3 lg:hidden">
+          <SidebarNav compact />
+        </div>
 
-      <div className="grid gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
-        <SidebarNav />
-        <div className="space-y-8">
-          <CommandCenterHero />
-          <AICurriculumHub />
-          <AIEngineeringMastery />
-          <SystemDesignSimulator sectionId="system-simulator" />
-          <SituationSolutionEngine sectionId="situation-solution" />
-          <FailureModeExplorer sectionId="failure-mode-explorer" />
-          <ProjectTable sectionId="project-repository" />
-          <LiveSignalFeed />
-          <InteractiveAgent />
-          <InterviewModeAgent sectionId="interview-mode" />
-          <ResourceTemplatesHub sectionId="resources-templates" />
+        {/* Main content grid - responsive on all breakpoints */}
+        <div className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
+          {/* Desktop sidebar - hidden on mobile and tablet */}
+          <aside className="hidden lg:block">
+            <SidebarNav />
+          </aside>
+
+          {/* Main content area */}
+          <div className="space-y-8 min-w-0">
+            <CommandCenterHero />
+            <AICurriculumHub />
+            <AIEngineeringMastery />
+            <SystemDesignSimulator sectionId="system-simulator" />
+            <SituationSolutionEngine sectionId="situation-solution" />
+            <FailureModeExplorer sectionId="failure-mode-explorer" />
+            <ProjectTable sectionId="project-repository" />
+            <LiveSignalFeed />
+            <InteractiveAgent />
+            <InterviewModeAgent sectionId="interview-mode" />
+            <ResourceTemplatesHub sectionId="resources-templates" />
+          </div>
         </div>
       </div>
     </main>
