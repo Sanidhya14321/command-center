@@ -122,5 +122,5 @@ const FailureModeExplorerContent = () => {
 
 export default FailureModeExplorerContent;
 /* Autonomous Groq component update
-// ... existing code
+// Integrate simulator with failure mode explorer
 */
