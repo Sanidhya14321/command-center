@@ -75,6 +75,11 @@ function summarizeMemory(memory: MemoryState): string {
 function isRecoverableAgentError(error: unknown): boolean {
   const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
   return (
+    message.includes("rate limit") ||
+    message.includes("rate_limit") ||
+    message.includes("rate_limit_exceeded") ||
+    message.includes("tokens per day") ||
+    message.includes("429") ||
     message.includes("groq_api_key") ||
     message.includes("decommissioned") ||
     message.includes("not supported") ||

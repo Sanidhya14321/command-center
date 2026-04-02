@@ -121,7 +121,38 @@ function parsePlan(
 
 function shouldRetry(error: unknown): boolean {
   const msg = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
-  return msg.includes("decommissioned") || msg.includes("not supported") || msg.includes("invalid_request_error");
+  return (
+    msg.includes("rate limit") ||
+    msg.includes("rate_limit") ||
+    msg.includes("rate_limit_exceeded") ||
+    msg.includes("tokens per day") ||
+    msg.includes("429") ||
+    msg.includes("decommissioned") ||
+    msg.includes("not supported") ||
+    msg.includes("invalid_request_error")
+  );
+}
+
+function getRetryDelayMs(error: unknown): number | null {
+  const msg = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+  const colonMatch = msg.match(/try again in\s+(\d+)m(\d+(?:\.\d+)?)s/);
+  if (colonMatch) {
+    const minutes = Number(colonMatch[1]);
+    const seconds = Number(colonMatch[2]);
+    return (minutes * 60 + seconds) * 1000;
+  }
+
+  const secondMatch = msg.match(/try again in\s+(\d+(?:\.\d+)?)s/);
+  if (secondMatch) {
+    return Number(secondMatch[1]) * 1000;
+  }
+
+  return null;
+}
+
+async function waitBeforeRetry(error: unknown): Promise<void> {
+  const delayMs = getRetryDelayMs(error) ?? 60_000;
+  await new Promise((resolve) => setTimeout(resolve, delayMs));
 }
 
 export async function planNextChange(params: {
@@ -183,6 +214,8 @@ export async function planNextChange(params: {
     } catch (error) {
       lastError = error;
       if (!shouldRetry(error)) break;
+
+      await waitBeforeRetry(error);
     }
   }
 
@@ -250,6 +283,8 @@ export async function repairMalformedPatch(params: {
     } catch (error) {
       lastError = error;
       if (!shouldRetry(error)) break;
+
+      await waitBeforeRetry(error);
     }
   }
 
