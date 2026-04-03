@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, useScroll, useSpring } from "framer-motion";
-import { Command, Compass, FileText, Layers, Radar } from "lucide-react";
+import { Command, Compass, FileText, Layers, Radar, Sparkles } from "lucide-react";
 import { ThemeSelector } from "./ThemeSelector";
 
 const links = [
@@ -9,6 +9,7 @@ const links = [
   { href: "/playbook", label: "Playbook", icon: <FileText className="size-4" />, shortLabel: "Play" },
   { href: "#ai-curriculum", label: "AI Engineering", icon: <Layers className="size-4" />, shortLabel: "AI" },
   { href: "#signal-intelligence", label: "Signals", icon: <Radar className="size-4" />, shortLabel: "Sig" },
+  { href: "#ai-generated-content", label: "Generated", icon: <Sparkles className="size-4" />, shortLabel: "Gen" },
   { href: "#agent-lab", label: "Agent", icon: <Command className="size-4" />, shortLabel: "Agent" },
 ];
 

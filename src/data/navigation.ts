@@ -50,6 +50,13 @@ export const primaryNav: NavItem[] = [
     description: "Relevance-ranked AI ecosystem updates with why-it-matters context",
   },
   {
+    id: "ai-generated-content",
+    label: "AI Generated Content",
+    href: "#ai-generated-content",
+    kind: "anchor",
+    description: "Single-call Groq generated content tailored to gaps in existing modules",
+  },
+  {
     id: "agent-lab",
     label: "Agent Lab",
     href: "#agent-lab",

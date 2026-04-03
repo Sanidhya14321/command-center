@@ -44,6 +44,11 @@ const ResourceTemplatesHub = dynamic(
   { loading: () => <SkeletonLoader className="h-56 w-full rounded-md" /> },
 );
 
+const AIGeneratedContent = dynamic(
+  () => import("@/components/sections/AIGeneratedContent").then((mod) => mod.AIGeneratedContent),
+  { loading: () => <SkeletonLoader className="h-56 w-full rounded-md" /> },
+);
+
 export default function Home() {
   return (
     <main className="min-h-screen w-full bg-[var(--m3-surface)]">
@@ -72,6 +77,7 @@ export default function Home() {
             <FailureModeExplorer sectionId="failure-mode-explorer" />
             <ProjectTable sectionId="project-repository" />
             <LiveSignalFeed />
+            <AIGeneratedContent sectionId="ai-generated-content" />
             <InteractiveAgent />
             <InterviewModeAgent sectionId="interview-mode" />
             <ResourceTemplatesHub sectionId="resources-templates" />

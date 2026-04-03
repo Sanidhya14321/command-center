@@ -20,6 +20,7 @@ Production-quality Next.js App Router resource hub for Forward Deployment Engine
 - FDE Playbook markdown rendering with rich callout and code styles
 - AI Engineering Mastery with practical decision matrix and checklists
 - Live Signal Intelligence panel with resilient server fallback
+- AI Generated Content panel powered by a single Groq call and rendered as native site content
 - Interactive Agent Lab using Groq model fallback chain (primary, fallback, safe)
 - Searchable/sortable/paginated 300-row Data Science project repository
 
@@ -28,6 +29,7 @@ Production-quality Next.js App Router resource hub for Forward Deployment Engine
 The repository now includes a self-evolving agent runtime under [agent/agent.ts](agent/agent.ts) with:
 
 - Groq planner with model fallback chain (primary, fallback, safe model)
+- Groq content generation endpoint for generated site sections
 - Strict JSON planning output with diff-only patch edits
 - Validation gates (patch shape, duplication checks, lint + build safety)
 - Automatic rollback on validation failure
@@ -49,6 +51,7 @@ Workflow: [.github/workflows/auto-update.yml](.github/workflows/auto-update.yml)
 1. Configure environment values from [.env.example](.env.example)
 2. Add repository secrets: `GROQ_API_KEY`, `NEWS_API_KEY`
 3. Add repository variables (optional): `MODEL`, `PRIMARY_MODEL`, `FALLBACK_MODEL`, `SAFE_MODEL`
+4. Safe model default is `llama-3.1-8b-instant` if `SAFE_MODEL` is not configured
 4. Run locally: `npm run agent:run`
 
 ## Routes
