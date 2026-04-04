@@ -52,9 +52,9 @@ export const primaryNav: NavItem[] = [
   {
     id: "ai-generated-content",
     label: "AI Generated Content",
-    href: "#ai-generated-content",
-    kind: "anchor",
-    description: "Single-call Groq generated content tailored to gaps in existing modules",
+    href: "/generated-content",
+    kind: "route",
+    description: "Daily CSV-backed AI engineering brief with Groq-powered updates",
   },
   {
     id: "agent-lab",

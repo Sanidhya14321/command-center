@@ -1,53 +1,61 @@
 import { NextResponse } from "next/server";
 import Groq from "groq-sdk";
+import {
+  type CsvGeneratedRow,
+  type GeneratedBlock,
+  type GeneratedContentPayload,
+  readDailyPayload,
+  upsertCsvRow,
+  fallbackPayload,
+} from "@/lib/generatedContentCsv";
 
 const MODEL = process.env.MODEL || process.env.PRIMARY_MODEL || "auto";
 
-type GeneratedBlock = {
-  title: string;
-  paragraph: string;
-  callout: string;
-};
+export async function GET() {
+  try {
+    const result = await readDailyPayload();
+    return NextResponse.json({ source: "csv", date: result.date, structured: result.payload });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error: "Failed to read CSV generated content",
+        detail: error instanceof Error ? error.message : "Unknown error",
+        source: "fallback",
+        structured: fallbackPayload(),
+      },
+      { status: 200 },
+    );
+  }
+}
 
-type GeneratedContentPayload = {
-  headline: string;
-  intro: string;
-  blocks: GeneratedBlock[];
-};
-
-function fallbackPayload(): GeneratedContentPayload {
+function toCsvRow(payload: GeneratedContentPayload, date: string): CsvGeneratedRow {
+  const [b1, b2, b3] = payload.blocks;
   return {
-    headline: "AI Generated Content",
-    intro:
-      "This panel is designed to continuously summarize what matters next, without repeating content already covered in curriculum, systems, and interview sections.",
-    blocks: [
-      {
-        title: "Execution Focus",
-        paragraph:
-          "Prioritize one measurable AI delivery objective per sprint, tie it to reliability and latency budgets, and define a rollback trigger before release.",
-        callout: "Define success metrics before changing prompts or models.",
-      },
-      {
-        title: "Production Quality",
-        paragraph:
-          "Run every change through offline evals, canary exposure, and incident playbooks. Optimize for predictable behavior over isolated benchmark wins.",
-        callout: "Ship small, observable changes and keep a fast rollback path.",
-      },
-      {
-        title: "Career Signal",
-        paragraph:
-          "Document architecture decisions with tradeoffs, failure modes, and guardrails. Strong AI engineers communicate system risk and mitigation clearly.",
-        callout: "Show your reasoning, not only your implementation.",
-      },
-    ],
+    date,
+    headline: payload.headline,
+    intro: payload.intro,
+    block1_title: b1?.title ?? "",
+    block1_paragraph: b1?.paragraph ?? "",
+    block1_callout: b1?.callout ?? "",
+    block2_title: b2?.title ?? "",
+    block2_paragraph: b2?.paragraph ?? "",
+    block2_callout: b2?.callout ?? "",
+    block3_title: b3?.title ?? "",
+    block3_paragraph: b3?.paragraph ?? "",
+    block3_callout: b3?.callout ?? "",
   };
 }
 
-export async function GET() {
+export async function POST(request: Request) {
   try {
     if (!process.env.GROQ_API_KEY) {
-      return NextResponse.json({ model: MODEL, structured: fallbackPayload() });
+      return NextResponse.json({ error: "GROQ_API_KEY is required" }, { status: 500 });
     }
+
+    const body = (await request.json().catch(() => ({}))) as { date?: string };
+    const targetDate = body.date && /^\d{4}-\d{2}-\d{2}$/.test(body.date)
+      ? body.date
+      : new Date().toISOString().slice(0, 10);
 
     const coveredContext = [
       "AI curriculum and learning paths",
@@ -78,7 +86,7 @@ export async function GET() {
         },
         {
           role: "user",
-          content: `Create fresh section content that avoids overlap with already-covered topics.
+          content: `Create fresh section content for date ${targetDate} that avoids overlap with already-covered topics.
 
 Covered content:
 ${coveredContext}
@@ -126,15 +134,28 @@ Constraints:
         : fallback.blocks,
     };
 
-    return NextResponse.json({ model: completion.model, structured: safePayload });
+    const normalizedPayload: GeneratedContentPayload = {
+      ...safePayload,
+      blocks: [...safePayload.blocks, ...fallback.blocks].slice(0, 3),
+    };
+
+    await upsertCsvRow(toCsvRow(normalizedPayload, targetDate));
+
+    return NextResponse.json({
+      ok: true,
+      source: "groq->csv",
+      model: completion.model,
+      date: targetDate,
+      structured: normalizedPayload,
+    });
   } catch (error) {
     return NextResponse.json(
       {
-        error: "Generated content failed",
+        error: "Failed to generate and persist CSV content",
         detail: error instanceof Error ? error.message : "Unknown error",
         structured: fallbackPayload(),
       },
-      { status: 200 },
+      { status: 500 },
     );
   }
 }

@@ -3,46 +3,30 @@
 import { motion } from "framer-motion";
 import { Sparkles } from "lucide-react";
 import { SectionCard } from "@/components/primitives/SectionCard";
-import { dailyGeneratedContent } from "@/data/dailyGeneratedContent";
-
-type GeneratedBlock = {
-  title: string;
-  paragraph: string;
-  callout: string;
-};
-
-type GeneratedContentPayload = {
-  headline: string;
-  intro: string;
-  blocks: GeneratedBlock[];
-};
+import type { GeneratedContentPayload } from "@/lib/generatedContentCsv";
 
 type AIGeneratedContentProps = {
+  content: GeneratedContentPayload;
+  dateLabel: string;
   sectionId?: string;
 };
 
-export function AIGeneratedContent({ sectionId = "ai-generated-content" }: AIGeneratedContentProps) {
-  const data: GeneratedContentPayload = {
-    headline: dailyGeneratedContent.headline,
-    intro: dailyGeneratedContent.intro,
-    blocks: dailyGeneratedContent.blocks,
-  };
-
+export function AIGeneratedContent({ content, dateLabel, sectionId = "ai-generated-content" }: AIGeneratedContentProps) {
   return (
     <SectionCard
       id={sectionId}
       title="AI Generated Content"
-      subtitle={`Daily deterministic briefing sourced from local dataset (${dailyGeneratedContent.date})`}
+      subtitle={`Daily CSV-backed briefing (${dateLabel})`}
       icon={<Sparkles className="size-6" />}
     >
       <div className="space-y-4">
         <div className="rounded-xl border border-[var(--m3-outline)] bg-[var(--m3-surface-container-low)] p-4">
-          <h3 className="text-lg font-semibold text-[var(--m3-on-surface)]">{data.headline}</h3>
-          <p className="mt-2 text-sm leading-relaxed text-[var(--m3-on-surface-variant)]">{data.intro}</p>
+          <h3 className="text-lg font-semibold text-[var(--m3-on-surface)]">{content.headline}</h3>
+          <p className="mt-2 text-sm leading-relaxed text-[var(--m3-on-surface-variant)]">{content.intro}</p>
         </div>
 
         <div className="grid gap-3 md:grid-cols-3">
-          {data.blocks.map((block, index) => (
+          {content.blocks.map((block, index) => (
             <motion.article
               key={`${block.title}-${index}`}
               initial={{ opacity: 0, y: 8 }}
