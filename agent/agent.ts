@@ -27,6 +27,179 @@ type MemoryState = {
 
 const MEMORY_PATH = path.join(process.cwd(), "agent", "memory.json");
 
+type DataModeResult = {
+  summary: string;
+  files: string[];
+  qualityScore: number;
+  commitMessage: string;
+  mode: AgentMode;
+};
+
+const CSV_REQUIRED_COLUMNS = [
+  "date",
+  "headline",
+  "intro",
+  "block1_title",
+  "block1_paragraph",
+  "block1_callout",
+  "block2_title",
+  "block2_paragraph",
+  "block2_callout",
+  "block3_title",
+  "block3_paragraph",
+  "block3_callout",
+] as const;
+
+function parseCsvLine(line: string): string[] {
+  const cells: string[] = [];
+  let current = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i += 1) {
+    const char = line[i];
+
+    if (char === '"') {
+      if (inQuotes && line[i + 1] === '"') {
+        current += '"';
+        i += 1;
+      } else {
+        inQuotes = !inQuotes;
+      }
+      continue;
+    }
+
+    if (char === "," && !inQuotes) {
+      cells.push(current.trim());
+      current = "";
+      continue;
+    }
+
+    current += char;
+  }
+
+  cells.push(current.trim());
+  return cells;
+}
+
+function parseCsvRows(content: string): Array<Record<string, string>> {
+  const lines = content
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0 && !line.startsWith("#"));
+
+  if (lines.length < 2) {
+    throw new Error("CSV must include a header row and at least one data row");
+  }
+
+  const headers = parseCsvLine(lines[0]);
+  const missing = CSV_REQUIRED_COLUMNS.filter((col) => !headers.includes(col));
+  if (missing.length > 0) {
+    throw new Error(`CSV missing required columns: ${missing.join(", ")}`);
+  }
+
+  return lines.slice(1).map((line) => {
+    const values = parseCsvLine(line);
+    const row: Record<string, string> = {};
+    headers.forEach((header, index) => {
+      row[header] = values[index] ?? "";
+    });
+    return row;
+  });
+}
+
+function todayIsoDate(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function chooseDailyRow(rows: Array<Record<string, string>>): Record<string, string> {
+  const today = todayIsoDate();
+  const exact = rows.find((row) => row.date === today);
+  if (exact) return exact;
+
+  const dayNumber = Math.floor(Date.now() / 86_400_000);
+  return rows[dayNumber % rows.length];
+}
+
+function buildDailyContentTs(selected: Record<string, string>, sourceCsvPath: string): string {
+  const generatedAt = new Date().toISOString();
+
+  return [
+    "export type DailyGeneratedBlock = {",
+    "  title: string;",
+    "  paragraph: string;",
+    "  callout: string;",
+    "};",
+    "",
+    "export type DailyGeneratedContent = {",
+    "  date: string;",
+    "  generatedAt: string;",
+    "  sourceCsvPath: string;",
+    "  headline: string;",
+    "  intro: string;",
+    "  blocks: DailyGeneratedBlock[];",
+    "};",
+    "",
+    "export const dailyGeneratedContent: DailyGeneratedContent = {",
+    `  date: ${JSON.stringify(selected.date || todayIsoDate())},`,
+    `  generatedAt: ${JSON.stringify(generatedAt)},`,
+    `  sourceCsvPath: ${JSON.stringify(sourceCsvPath)},`,
+    `  headline: ${JSON.stringify(selected.headline || "AI Engineering Daily Brief")},`,
+    `  intro: ${JSON.stringify(selected.intro || "Daily research-backed content from your local dataset.")},`,
+    "  blocks: [",
+    "    {",
+    `      title: ${JSON.stringify(selected.block1_title || "Focus Area 1")},`,
+    `      paragraph: ${JSON.stringify(selected.block1_paragraph || "")},`,
+    `      callout: ${JSON.stringify(selected.block1_callout || "")},`,
+    "    },",
+    "    {",
+    `      title: ${JSON.stringify(selected.block2_title || "Focus Area 2")},`,
+    `      paragraph: ${JSON.stringify(selected.block2_paragraph || "")},`,
+    `      callout: ${JSON.stringify(selected.block2_callout || "")},`,
+    "    },",
+    "    {",
+    `      title: ${JSON.stringify(selected.block3_title || "Focus Area 3")},`,
+    `      paragraph: ${JSON.stringify(selected.block3_paragraph || "")},`,
+    `      callout: ${JSON.stringify(selected.block3_callout || "")},`,
+    "    },",
+    "  ],",
+    "};",
+    "",
+  ].join("\n");
+}
+
+async function runCsvDataModeUpdate(): Promise<DataModeResult> {
+  const csvRelativePath = process.env.AGENT_DATA_CSV_PATH || "data/ai-engineering-daily-feed.csv";
+  const outputRelativePath = process.env.AGENT_DATA_OUTPUT_PATH || "src/data/dailyGeneratedContent.ts";
+
+  const csvAbsolutePath = path.join(process.cwd(), csvRelativePath);
+  const outputAbsolutePath = path.join(process.cwd(), outputRelativePath);
+
+  const rawCsv = await fs.readFile(csvAbsolutePath, "utf-8");
+  const rows = parseCsvRows(rawCsv);
+  const selected = chooseDailyRow(rows);
+  const nextFile = buildDailyContentTs(selected, csvRelativePath);
+
+  let existing = "";
+  try {
+    existing = await fs.readFile(outputAbsolutePath, "utf-8");
+  } catch {
+    existing = "";
+  }
+
+  if (existing !== nextFile) {
+    await fs.mkdir(path.dirname(outputAbsolutePath), { recursive: true });
+    await fs.writeFile(outputAbsolutePath, nextFile, "utf-8");
+  }
+
+  return {
+    summary: `Daily dataset sync completed using ${selected.date || todayIsoDate()} from ${csvRelativePath}`,
+    files: [outputRelativePath],
+    qualityScore: 9,
+    commitMessage: `docs(data): update daily AI engineering content (${selected.date || todayIsoDate()})`,
+    mode: "editor",
+  };
+}
+
 async function loadMemory(): Promise<MemoryState> {
   const raw = await fs.readFile(MEMORY_PATH, "utf-8");
   return JSON.parse(raw) as MemoryState;
@@ -170,6 +343,56 @@ async function applyForcedComponentRecovery(params: {
 }
 
 async function run(): Promise<void> {
+  const useDataMode = process.env.AGENT_DATA_MODE === "true";
+
+  if (useDataMode) {
+    const memory = await loadMemory();
+    const hardOutcomeRequired = requireHardOutcome();
+
+    if (!withinDailyCommitLimit(memory) && !hardOutcomeRequired) {
+      await logEvent("INFO", "Daily commit limit reached, skipping run", memory.dailyCommit);
+      return;
+    }
+
+    const dataUpdate = await runCsvDataModeUpdate();
+    await runBuildSafetyChecks();
+
+    await maybeDelay();
+    const committed = await commitAndPush(dataUpdate.commitMessage);
+    if (!committed) {
+      await logEvent("WARN", "Data mode produced no commit", {
+        files: dataUpdate.files,
+      });
+
+      if (hardOutcomeRequired) {
+        throw new Error("Data mode run completed without creating a commit");
+      }
+
+      return;
+    }
+
+    memory.dailyCommit.count += 1;
+    memory.lastRunAt = new Date().toISOString();
+    memory.history.push({
+      timestamp: memory.lastRunAt,
+      summary: dataUpdate.summary,
+      files: dataUpdate.files,
+      changeType: dataUpdate.mode,
+      qualityScore: dataUpdate.qualityScore,
+    });
+
+    if (memory.history.length > 200) {
+      memory.history = memory.history.slice(-200);
+    }
+
+    await saveMemory(memory);
+    await logEvent("INFO", "Data mode run successful", {
+      commitMessage: dataUpdate.commitMessage,
+      files: dataUpdate.files,
+    });
+    return;
+  }
+
   const memory = await loadMemory();
   const graph = await buildProjectGraph();
   const hardOutcomeRequired = requireHardOutcome();

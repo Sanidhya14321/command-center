@@ -2,7 +2,7 @@ name: Autonomous Repo Update
 
 on:
   schedule:
-    - cron: "17 * * * *"
+    - cron: "17 4 * * *"
   workflow_dispatch:
 
 permissions:
@@ -53,15 +53,22 @@ jobs:
           PRIMARY_MODEL: ${{ vars.PRIMARY_MODEL }}
           FALLBACK_MODEL: ${{ vars.FALLBACK_MODEL }}
           SAFE_MODEL: ${{ vars.SAFE_MODEL }}
+          AGENT_DATA_MODE: ${{ vars.AGENT_DATA_MODE }}
         run: |
           missing=0
-          if [ -z "$GROQ_API_KEY" ]; then
-            echo "GROQ_API_KEY is not configured. Failing run." >&2
-            missing=1
-          fi
-          if [ -z "$NEWS_API_KEY" ]; then
-            echo "NEWS_API_KEY is not configured. Failing run." >&2
-            missing=1
+          DATA_MODE="${AGENT_DATA_MODE:-true}"
+
+          if [ "$DATA_MODE" != "true" ]; then
+            if [ -z "$GROQ_API_KEY" ]; then
+              echo "GROQ_API_KEY is not configured while AGENT_DATA_MODE=false. Failing run." >&2
+              missing=1
+            fi
+            if [ -z "$NEWS_API_KEY" ]; then
+              echo "NEWS_API_KEY is not configured while AGENT_DATA_MODE=false. Failing run." >&2
+              missing=1
+            fi
+          else
+            echo "AGENT_DATA_MODE=true -> skipping Groq/News secrets requirement."
           fi
           if [ -z "$MODEL" ]; then
             echo "MODEL is not configured. Defaulting to auto." >&2
@@ -73,7 +80,7 @@ jobs:
             echo "FALLBACK_MODEL is not configured. Defaulting to llama-3.3-70b-versatile." >&2
           fi
           if [ -z "$SAFE_MODEL" ]; then
-            echo "SAFE_MODEL is not configured. Defaulting to mixtral-8x7b-32768." >&2
+            echo "SAFE_MODEL is not configured. Defaulting to llama-3.1-8b-instant." >&2
           fi
           if [ "$missing" -eq 1 ]; then
             echo "run_agent=false" >> "$GITHUB_OUTPUT"
@@ -92,18 +99,24 @@ jobs:
           PRIMARY_MODEL: ${{ vars.PRIMARY_MODEL }}
           FALLBACK_MODEL: ${{ vars.FALLBACK_MODEL }}
           SAFE_MODEL: ${{ vars.SAFE_MODEL }}
+          AGENT_DATA_MODE: ${{ vars.AGENT_DATA_MODE }}
+          AGENT_DATA_CSV_PATH: ${{ vars.AGENT_DATA_CSV_PATH }}
+          AGENT_DATA_OUTPUT_PATH: ${{ vars.AGENT_DATA_OUTPUT_PATH }}
           AGENT_ENABLE_DELAY: "false"
           AGENT_STRICT_MODE: "false"
         run: |
           export MODEL="${MODEL:-auto}"
           export PRIMARY_MODEL="${PRIMARY_MODEL:-auto}"
           export FALLBACK_MODEL="${FALLBACK_MODEL:-llama-3.3-70b-versatile}"
-          export SAFE_MODEL="${SAFE_MODEL:-mixtral-8x7b-32768}"
+          export SAFE_MODEL="${SAFE_MODEL:-llama-3.1-8b-instant}"
+          export AGENT_DATA_MODE="${AGENT_DATA_MODE:-true}"
+          export AGENT_DATA_CSV_PATH="${AGENT_DATA_CSV_PATH:-data/ai-engineering-daily-feed.csv}"
+          export AGENT_DATA_OUTPUT_PATH="${AGENT_DATA_OUTPUT_PATH:-src/data/dailyGeneratedContent.ts}"
           echo "start_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           npm run agent:run
 
       - name: Retry autonomous agent with forced component update
-        if: steps.secret_check.outputs.run_agent == 'true'
+        if: steps.secret_check.outputs.run_agent == 'true' && (vars.AGENT_DATA_MODE == '' || vars.AGENT_DATA_MODE == 'false')
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           NEWS_API_KEY: ${{ secrets.NEWS_API_KEY }}
@@ -118,7 +131,7 @@ jobs:
           export MODEL="${MODEL:-auto}"
           export PRIMARY_MODEL="${PRIMARY_MODEL:-auto}"
           export FALLBACK_MODEL="${FALLBACK_MODEL:-llama-3.3-70b-versatile}"
-          export SAFE_MODEL="${SAFE_MODEL:-mixtral-8x7b-32768}"
+          export SAFE_MODEL="${SAFE_MODEL:-llama-3.1-8b-instant}"
           START_SHA="${{ steps.agent_run.outputs.start_sha }}"
           CURRENT_SHA="$(git rev-parse HEAD)"
 
