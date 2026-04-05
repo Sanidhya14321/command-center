@@ -125,3 +125,12 @@ export default FailureModeExplorerContent;
 // AI-engineering content: Emergency recovery attempt
 // Render the emergency recovery content
 */
+
+
+// AI-engineering content: Emergency recovery attempt
+const emergencyRecoveryContent = (
+  <div>
+    <h2>Emergency Recovery Attempt</h2>
+    <p>This is a critical step in the failure mode exploration process.</p>
+  </div>
+);
