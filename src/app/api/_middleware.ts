@@ -92,3 +92,6 @@ export function middleware(request: NextRequest) {
 
   return response;
 }
+/* Autonomous Groq component update
+Autonomous Groq summary: export function errorHandler err: any console.error err return status: 500, message: Internal Server Error.
+*/

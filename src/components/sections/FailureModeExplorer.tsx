@@ -109,7 +109,7 @@ export function FailureModeExplorer({ sectionId = "failure-mode-explorer" }: { s
     </SectionCard>
   );
 }
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 const FailureModeExplorerContent = () => {
   return (
