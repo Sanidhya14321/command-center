@@ -131,5 +131,5 @@ const emergencyRecoveryContent = (
   </div>
 );
 /* Autonomous Groq component update
-Autonomous Groq summary: export const FailureModeExplorer return div Failure Mode Explorer div.
+// Add observability and error handling for failure mode explorer
 */
