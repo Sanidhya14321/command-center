@@ -141,6 +141,5 @@ const recoverySteps = [
 
 console.log(recoverySteps);
 /* Autonomous Groq component update
-// Add AI-engineering content for emergency recovery
-// Render recovery content
+// Add meaningful AI-engineering content here
 */
