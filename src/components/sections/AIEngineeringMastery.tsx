@@ -113,5 +113,5 @@ function ChecklistCard({ title, icon, items }: ChecklistCardProps) {
   );
 }
 /* Autonomous Groq component update
-Autonomous Groq summary: import React from react const AIEngineeringMasteryContent return div Engineering Mastery This section will provide overview engineering best practices. div export default AIEngineeringMasteryContent.
+Autonomous Groq summary: import React from react const AIEngineeringMasteryContent return div Engineering Mastery This section dedicated engineering best practices and mastery. div export default AIEngineeringMasteryContent.
 */
