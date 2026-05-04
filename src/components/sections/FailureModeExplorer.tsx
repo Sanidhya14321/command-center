@@ -141,5 +141,5 @@ const recoverySteps = [
 
 console.log(recoverySteps);
 /* Autonomous Groq component update
-Autonomous Groq summary: import React from react const FailureModeExplorer: React.FC return div Failure Mode Explorer This component designed help users explore and understand failure modes complex systems..
+Autonomous Groq summary: export const FailureModeExplorer return div Failure Mode Explorer div.
 */
